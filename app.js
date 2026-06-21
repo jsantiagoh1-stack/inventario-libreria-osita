@@ -4,6 +4,11 @@ let movimientos = cargarLocalStorage("movimientos");
 let ventaActual = [];
 let productoSeleccionadoVenta = null;
 
+let accionAdminPendiente = null;
+let accionConfirmacionPendiente = null;
+let productoStockSeleccionado = null;
+let tipoMovimientoStock = "entrada";
+
 const CLAVE_ADMIN = "1234";
 
 productos = normalizarProductos(productos);
@@ -96,19 +101,62 @@ function cerrarMensaje() {
   document.getElementById("mensajeModal").style.display = "none";
 }
 
-function pedirClaveAdmin() {
-  const clave = prompt("Ingresa la contraseña de administrador:");
+function pedirClaveAdmin(accionDespues) {
+  accionAdminPendiente = accionDespues;
 
-  if (clave === null) {
-    return false;
-  }
+  const input = document.getElementById("adminClaveInput");
+  input.value = "";
+
+  document.getElementById("adminModal").style.display = "flex";
+
+  setTimeout(function() {
+    input.focus();
+  }, 200);
+}
+
+function confirmarClaveAdmin() {
+  const clave = document.getElementById("adminClaveInput").value;
 
   if (clave !== CLAVE_ADMIN) {
     mostrarMensaje("Contraseña incorrecta.", "Error", "error");
-    return false;
+    return;
   }
 
-  return true;
+  const accion = accionAdminPendiente;
+
+  cerrarAdminModal();
+
+  if (typeof accion === "function") {
+    accion();
+  }
+}
+
+function cerrarAdminModal() {
+  document.getElementById("adminModal").style.display = "none";
+  accionAdminPendiente = null;
+}
+
+function mostrarConfirmacion(titulo, texto, accionSi) {
+  accionConfirmacionPendiente = accionSi;
+
+  document.getElementById("confirmacionTitulo").textContent = titulo;
+  document.getElementById("confirmacionTexto").textContent = texto;
+  document.getElementById("confirmacionModal").style.display = "flex";
+}
+
+function confirmarAccionGeneral() {
+  document.getElementById("confirmacionModal").style.display = "none";
+
+  if (typeof accionConfirmacionPendiente === "function") {
+    accionConfirmacionPendiente();
+  }
+
+  accionConfirmacionPendiente = null;
+}
+
+function cerrarConfirmacionModal() {
+  document.getElementById("confirmacionModal").style.display = "none";
+  accionConfirmacionPendiente = null;
 }
 
 function mostrarApartado(nombre) {
@@ -154,10 +202,12 @@ function leerPresentaciones() {
 }
 
 function guardarProducto() {
-  if (!pedirClaveAdmin()) {
-    return;
-  }
+  pedirClaveAdmin(function() {
+    guardarProductoAdmin();
+  });
+}
 
+function guardarProductoAdmin() {
   const editandoId = obtenerValor("editandoId");
 
   const codigo = obtenerValor("codigo");
@@ -288,7 +338,8 @@ function mostrarProductos() {
     const botones = `
       <button class="accion verde" onclick="abrirVentaModal('${p.codigo}')">Agregar</button>
       <button class="accion editar" onclick="editarProducto('${p.id}')">Editar</button>
-      <button class="accion azul" onclick="agregarStock('${p.id}')">Stock</button>
+      <button class="accion azul" onclick="abrirStockModal('${p.id}', 'entrada')">+ Stock</button>
+      <button class="accion rosa" onclick="abrirStockModal('${p.id}', 'salida')">- Stock</button>
       <button class="accion eliminar" onclick="eliminarProducto('${p.id}')">Eliminar</button>
     `;
 
@@ -346,65 +397,135 @@ function editarProducto(id) {
   window.scrollTo(0, 0);
 }
 
-function agregarStock(id) {
-  if (!pedirClaveAdmin()) {
-    return;
-  }
+function abrirStockModal(id, tipo) {
+  pedirClaveAdmin(function() {
+    const producto = productos.find(function(p) {
+      return p.id === id;
+    });
 
-  const producto = productos.find(function(p) {
-    return p.id === id;
+    if (!producto) {
+      mostrarMensaje("Producto no encontrado.", "Error", "error");
+      return;
+    }
+
+    productoStockSeleccionado = producto;
+    tipoMovimientoStock = tipo;
+
+    document.getElementById("stockCantidadInput").value = "";
+
+    if (tipo === "entrada") {
+      document.getElementById("stockModalTitulo").textContent = "Agregar stock";
+      document.getElementById("stockModalTexto").textContent =
+        "Producto: " + producto.nombre + ". Escribe cuánto stock quieres agregar.";
+    } else {
+      document.getElementById("stockModalTitulo").textContent = "Quitar stock";
+      document.getElementById("stockModalTexto").textContent =
+        "Producto: " + producto.nombre + ". Escribe cuánto stock quieres descontar.";
+    }
+
+    document.getElementById("stockModal").style.display = "flex";
+
+    setTimeout(function() {
+      document.getElementById("stockCantidadInput").focus();
+    }, 200);
   });
+}
 
-  if (!producto) {
-    mostrarMensaje("Producto no encontrado.", "Error", "error");
+function cerrarStockModal() {
+  document.getElementById("stockModal").style.display = "none";
+  productoStockSeleccionado = null;
+  tipoMovimientoStock = "entrada";
+}
+
+function confirmarCambioStock() {
+  if (!productoStockSeleccionado) {
+    mostrarMensaje("No hay producto seleccionado.", "Error", "error");
     return;
   }
 
-  const cantidad = Number(prompt("¿Cuánto quieres agregar al stock base?"));
+  const cantidad = Number(document.getElementById("stockCantidadInput").value);
 
   if (isNaN(cantidad) || cantidad <= 0) {
     mostrarMensaje("Cantidad no válida.", "Aviso", "aviso");
     return;
   }
 
-  const stockAnterior = Number(producto.stock) || 0;
-  const stockNuevo = stockAnterior + cantidad;
+  const stockAnterior = Number(productoStockSeleccionado.stock) || 0;
+  let stockNuevo = stockAnterior;
+  let tipoTexto = "";
 
-  producto.stock = stockNuevo;
+  if (tipoMovimientoStock === "entrada") {
+    stockNuevo = stockAnterior + cantidad;
+    tipoTexto = "Entrada de stock";
+  } else {
+    if (cantidad > stockAnterior) {
+      mostrarMensaje(
+        "No puedes quitar más stock del que tienes disponible.",
+        "Stock insuficiente",
+        "aviso"
+      );
+      return;
+    }
+
+    stockNuevo = stockAnterior - cantidad;
+    tipoTexto = "Salida de stock";
+  }
+
+  productoStockSeleccionado.stock = stockNuevo;
 
   movimientos.push({
     fecha: new Date().toLocaleString(),
-    codigo: producto.codigo,
-    nombre: producto.nombre,
-    cantidad: cantidad,
+    codigo: productoStockSeleccionado.codigo,
+    nombre: productoStockSeleccionado.nombre,
+    tipo: tipoTexto,
+    cantidad: tipoMovimientoStock === "entrada" ? cantidad : -cantidad,
     stockAnterior: stockAnterior,
     stockNuevo: stockNuevo
   });
 
+  const unidad = productoStockSeleccionado.unidadBase || "";
+
   guardarDatos();
   mostrarProductos();
   mostrarMovimientos();
+  actualizarResumen();
 
-  mostrarMensaje("Stock actualizado. Nuevo stock: " + stockNuevo + " " + (producto.unidadBase || ""), "Stock actualizado", "exito");
+  cerrarStockModal();
+
+  mostrarMensaje(
+    "Stock actualizado correctamente. Nuevo stock: " + stockNuevo + " " + unidad,
+    "Stock actualizado",
+    "exito"
+  );
 }
 
 function eliminarProducto(id) {
-  if (!pedirClaveAdmin()) {
-    return;
-  }
+  pedirClaveAdmin(function() {
+    const producto = productos.find(function(p) {
+      return p.id === id;
+    });
 
-  const confirmar = confirm("¿Seguro que quieres eliminar este producto?");
+    if (!producto) {
+      mostrarMensaje("Producto no encontrado.", "Error", "error");
+      return;
+    }
 
-  if (!confirmar) return;
+    mostrarConfirmacion(
+      "Eliminar producto",
+      "¿Seguro que quieres eliminar el producto: " + producto.nombre + "?",
+      function() {
+        productos = productos.filter(function(p) {
+          return p.id !== id;
+        });
 
-  productos = productos.filter(function(p) {
-    return p.id !== id;
+        guardarDatos();
+        mostrarProductos();
+        actualizarResumen();
+
+        mostrarMensaje("Producto eliminado correctamente.", "Listo", "exito");
+      }
+    );
   });
-
-  guardarDatos();
-  mostrarProductos();
-
-  mostrarMensaje("Producto eliminado correctamente.", "Listo", "exito");
 }
 
 function limpiarFormulario() {
@@ -746,20 +867,20 @@ function mostrarVentas() {
 }
 
 function borrarVentas() {
-  if (!pedirClaveAdmin()) {
-    return;
-  }
+  pedirClaveAdmin(function() {
+    mostrarConfirmacion(
+      "Borrar historial",
+      "¿Seguro que quieres borrar todo el historial de ventas?",
+      function() {
+        ventas = [];
+        guardarDatos();
+        mostrarVentas();
+        actualizarResumen();
 
-  const confirmar = confirm("¿Seguro que quieres borrar todo el historial de ventas?");
-
-  if (!confirmar) return;
-
-  ventas = [];
-  guardarDatos();
-  mostrarVentas();
-  actualizarResumen();
-
-  mostrarMensaje("Historial de ventas eliminado.", "Listo", "exito");
+        mostrarMensaje("Historial de ventas eliminado.", "Listo", "exito");
+      }
+    );
+  });
 }
 
 function mostrarMovimientos() {
@@ -772,7 +893,7 @@ function mostrarMovimientos() {
   if (movimientos.length === 0) {
     lista.innerHTML = `
       <tr>
-        <td colspan="6">No hay movimientos de stock</td>
+        <td colspan="7">No hay movimientos de stock</td>
       </tr>
     `;
     return;
@@ -784,6 +905,7 @@ function mostrarMovimientos() {
         <td>${m.fecha}</td>
         <td>${m.codigo}</td>
         <td>${m.nombre}</td>
+        <td>${m.tipo || "Movimiento"}</td>
         <td>${m.cantidad}</td>
         <td>${m.stockAnterior}</td>
         <td>${m.stockNuevo}</td>
@@ -838,10 +960,10 @@ function descargarMovimientos() {
     return;
   }
 
-  let csv = "Fecha,Codigo,Producto,Cantidad Agregada,Stock Anterior,Stock Nuevo\n";
+  let csv = "Fecha,Codigo,Producto,Tipo,Cantidad,Stock Anterior,Stock Nuevo\n";
 
   movimientos.forEach(function(m) {
-    csv += `"${m.fecha}","${m.codigo}","${m.nombre}",${m.cantidad},${m.stockAnterior},${m.stockNuevo}\n`;
+    csv += `"${m.fecha}","${m.codigo}","${m.nombre}","${m.tipo || "Movimiento"}",${m.cantidad},${m.stockAnterior},${m.stockNuevo}\n`;
   });
 
   descargarCSV(csv, "movimientos_libreria_osita.csv");
@@ -885,10 +1007,12 @@ function crearRespaldo() {
 }
 
 function restaurarRespaldo() {
-  if (!pedirClaveAdmin()) {
-    return;
-  }
+  pedirClaveAdmin(function() {
+    restaurarRespaldoAdmin();
+  });
+}
 
+function restaurarRespaldoAdmin() {
   const archivoInput = document.getElementById("archivoRespaldo");
   const archivo = archivoInput.files[0];
 
@@ -897,10 +1021,16 @@ function restaurarRespaldo() {
     return;
   }
 
-  const confirmar = confirm("Esto reemplazará los datos actuales. ¿Deseas continuar?");
+  mostrarConfirmacion(
+    "Restaurar respaldo",
+    "Esto reemplazará los datos actuales. ¿Deseas continuar?",
+    function() {
+      leerArchivoRespaldo(archivo);
+    }
+  );
+}
 
-  if (!confirmar) return;
-
+function leerArchivoRespaldo(archivo) {
   const lector = new FileReader();
 
   lector.onload = function(evento) {
