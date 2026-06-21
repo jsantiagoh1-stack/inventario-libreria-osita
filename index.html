@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Librería Osita</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="contenedor">
+
+    <header class="encabezado">
+      <img src="logo_osita.png" alt="Logo Librería Osita" class="logo">
+
+      <div>
+        <h1>Librería Osita</h1>
+        <p>Pequeños detalles, grandes ideas</p>
+      </div>
+    </header>
+
+    <nav class="menu">
+      <button onclick="mostrarApartado('inicio')" class="activo" id="btn-inicio">Inicio</button>
+      <button onclick="mostrarApartado('productos')" id="btn-productos">Productos</button>
+      <button onclick="mostrarApartado('ventas')" id="btn-ventas">Ventas</button>
+      <button onclick="mostrarApartado('historial')" id="btn-historial">Historial</button>
+      <button onclick="mostrarApartado('movimientos')" id="btn-movimientos">Movimientos</button>
+      <button onclick="mostrarApartado('respaldo')" id="btn-respaldo">Respaldo</button>
+    </nav>
+
+    <section id="inicio" class="apartado activo-apartado">
+      <div class="card">
+        <h2>Resumen general</h2>
+
+        <div class="resumen-grid">
+          <div class="resumen-card">
+            <h3>Productos</h3>
+            <p id="totalProductos">0</p>
+          </div>
+
+          <div class="resumen-card">
+            <h3>Stock bajo</h3>
+            <p id="totalStockBajo">0</p>
+          </div>
+
+          <div class="resumen-card">
+            <h3>Ventas de hoy</h3>
+            <p id="ventasHoy">0</p>
+          </div>
+
+          <div class="resumen-card">
+            <h3>Vendido hoy</h3>
+            <p>Q<span id="totalVendidoHoy">0.00</span></p>
+          </div>
+
+          <div class="resumen-card">
+            <h3>Ganancia hoy</h3>
+            <p>Q<span id="gananciaHoy">0.00</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Corte de caja del día</h2>
+
+        <div class="resumen-grid resumen-grid-4">
+          <div class="resumen-card">
+            <h3>Cantidad de ventas</h3>
+            <p id="corteCantidadVentas">0</p>
+          </div>
+
+          <div class="resumen-card">
+            <h3>Total vendido</h3>
+            <p>Q<span id="corteTotalVendido">0.00</span></p>
+          </div>
+
+          <div class="resumen-card">
+            <h3>Ganancia estimada</h3>
+            <p>Q<span id="corteGanancia">0.00</span></p>
+          </div>
+
+          <div class="resumen-card">
+            <h3>Producto más vendido</h3>
+            <p id="productoMasVendido">Ninguno</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Productos con stock bajo</h2>
+
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Stock</th>
+                <th>Mínimo</th>
+                <th>Ubicación</th>
+              </tr>
+            </thead>
+            <tbody id="listaStockBajo"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="productos" class="apartado">
+      <div class="card">
+        <h2>Agregar / Editar producto</h2>
+
+        <input type="hidden" id="editandoId">
+
+        <div class="grid">
+          <input id="codigo" placeholder="Código del producto">
+          <input id="nombre" placeholder="Nombre del producto">
+          <input id="autor" placeholder="Marca">
+          <input id="precioCompra" type="number" step="0.01" placeholder="Costo por unidad base">
+          <input id="stock" type="number" step="0.01" placeholder="Stock base">
+          <input id="stockMinimo" type="number" step="0.01" placeholder="Stock mínimo">
+          <input id="unidadBase" placeholder="Unidad base: unidad, hoja, pliego, paquete">
+          <input id="ubicacion" placeholder="Ubicación, ejemplo: Estante A">
+        </div>
+
+        <h3>Presentaciones de venta</h3>
+        <p class="ayuda">
+          Producto normal: Unidad / Precio / Descuenta 1.  
+          Hojas: Resma, Ciento, Medio ciento, Por quetzal.
+        </p>
+
+        <div class="presentaciones">
+          <div class="presentacion">
+            <input id="presNombre1" placeholder="Presentación 1, ejemplo: Unidad">
+            <input id="presPrecio1" type="number" step="0.01" placeholder="Precio venta">
+            <input id="presDescuento1" type="number" step="0.01" placeholder="Descuenta stock">
+          </div>
+
+          <div class="presentacion">
+            <input id="presNombre2" placeholder="Presentación 2, ejemplo: Ciento">
+            <input id="presPrecio2" type="number" step="0.01" placeholder="Precio venta">
+            <input id="presDescuento2" type="number" step="0.01" placeholder="Descuenta stock">
+          </div>
+
+          <div class="presentacion">
+            <input id="presNombre3" placeholder="Presentación 3, ejemplo: Medio ciento">
+            <input id="presPrecio3" type="number" step="0.01" placeholder="Precio venta">
+            <input id="presDescuento3" type="number" step="0.01" placeholder="Descuenta stock">
+          </div>
+
+          <div class="presentacion">
+            <input id="presNombre4" placeholder="Presentación 4, ejemplo: Por quetzal">
+            <input id="presPrecio4" type="number" step="0.01" placeholder="Precio venta">
+            <input id="presDescuento4" type="number" step="0.01" placeholder="Descuenta stock">
+          </div>
+        </div>
+
+        <button onclick="guardarProducto()">Guardar producto</button>
+        <button class="gris" onclick="limpiarFormulario()">Limpiar</button>
+        <button onclick="descargarInventario()">Descargar inventario CSV</button>
+      </div>
+    </section>
+
+    <section id="ventas" class="apartado">
+      <div class="ventas-layout">
+
+        <div class="card">
+          <h2>Buscar producto</h2>
+
+          <input 
+            id="buscador"
+            type="text"
+            oninput="mostrarProductos()"
+            placeholder="Buscar por código, producto, marca, precio o ubicación">
+
+          <div class="tabla">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Producto</th>
+                  <th>Presentaciones</th>
+                  <th>Stock</th>
+                  <th>Ubicación</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="listaProductos"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Venta actual</h2>
+
+          <div class="grid">
+            <input id="codigoVenta" placeholder="Código del producto">
+            <input id="cantidadVenta" type="number" step="0.01" placeholder="Cantidad">
+          </div>
+
+          <button onclick="agregarAVenta()">Agregar por código</button>
+          <button class="gris" onclick="limpiarVentaActual()">Cancelar venta</button>
+
+          <div class="tabla">
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Presentación</th>
+                  <th>Cant.</th>
+                  <th>Precio</th>
+                  <th>Subtotal</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="listaVentaActual"></tbody>
+            </table>
+          </div>
+
+          <h2 class="total">Total: Q<span id="totalVenta">0.00</span></h2>
+          <h3 class="ganancia-texto">Ganancia estimada: Q<span id="gananciaVentaActual">0.00</span></h3>
+
+          <button onclick="finalizarVenta()">Finalizar venta</button>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="historial" class="apartado">
+      <div class="card">
+        <h2>Historial de ventas</h2>
+
+        <button onclick="descargarVentas()">Descargar ventas CSV</button>
+
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Presentación</th>
+                <th>Cantidad</th>
+                <th>Total</th>
+                <th>Ganancia</th>
+              </tr>
+            </thead>
+            <tbody id="listaVentas"></tbody>
+          </table>
+        </div>
+
+        <button class="rojo" onclick="borrarVentas()">Borrar historial de ventas</button>
+      </div>
+    </section>
+
+    <section id="movimientos" class="apartado">
+      <div class="card">
+        <h2>Entradas de stock</h2>
+
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Cantidad agregada</th>
+                <th>Stock anterior</th>
+                <th>Stock nuevo</th>
+              </tr>
+            </thead>
+            <tbody id="listaMovimientos"></tbody>
+          </table>
+        </div>
+
+        <button onclick="descargarMovimientos()">Descargar movimientos CSV</button>
+      </div>
+    </section>
+
+    <section id="respaldo" class="apartado">
+      <div class="card">
+        <h2>Respaldo de datos</h2>
+
+        <p>Guarda una copia de seguridad de tus productos, ventas y movimientos.</p>
+
+        <button onclick="crearRespaldo()">Crear respaldo</button>
+
+        <h3>Restaurar respaldo</h3>
+        <input type="file" id="archivoRespaldo" accept=".json">
+
+        <button onclick="restaurarRespaldo()">Restaurar datos</button>
+      </div>
+    </section>
+
+  </div>
+
+  <div id="mensajeModal" class="modal-mensaje">
+    <div class="modal-contenido">
+      <img id="mensajeImagen" src="img_aviso.png" alt="Mensaje" class="modal-img">
+      <h3 id="mensajeTitulo">Mensaje</h3>
+      <p id="mensajeTexto"></p>
+      <button onclick="cerrarMensaje()">Aceptar</button>
+    </div>
+  </div>
+
+  <div id="ventaModal" class="modal-mensaje">
+    <div class="modal-contenido">
+      <img src="img_aviso.png" alt="Venta" class="modal-img">
+
+      <h3 id="ventaProductoTitulo">Agregar producto</h3>
+
+      <p>Elige presentación:</p>
+      <select id="ventaPresentacion" class="select-modal"></select>
+
+      <p>Cantidad:</p>
+      <input id="ventaCantidadModal" type="number" step="0.01" value="1">
+
+      <div class="modal-botones">
+        <button onclick="confirmarAgregarVenta()">Agregar</button>
+        <button class="gris" onclick="cerrarVentaModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
