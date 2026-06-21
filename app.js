@@ -528,6 +528,7 @@ function agregarItemAVenta(codigo, cantidad, indicePresentacion) {
     if (item.codigo === codigo) {
       return total + Number(item.stockDescontar || 0);
     }
+
     return total;
   }, 0);
 
