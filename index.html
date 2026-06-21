@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Librería Osita</title>
 
-<link rel="icon" type="image/png" href="icono-app.png">
-<link rel="apple-touch-icon" href="icono-app.png">
-<link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icono-app.png">
+  <link rel="apple-touch-icon" href="icono-app.png">
+  <link rel="manifest" href="manifest.json">
 
-<link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -323,6 +323,28 @@
       <div class="modal-botones">
         <button onclick="confirmarAgregarVenta()">Agregar</button>
         <button class="gris" onclick="cerrarVentaModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmarVentaModal" class="modal-mensaje">
+    <div class="modal-contenido venta-confirmacion">
+      <img src="img_exito.png" alt="Confirmar venta" class="modal-img">
+
+      <h3>¿Finalizar venta?</h3>
+
+      <p class="texto-confirmacion">
+        Revisa bien la venta antes de finalizar.
+      </p>
+
+      <div class="total-confirmacion">
+        Total a cobrar:
+        <strong>Q<span id="confirmarVentaTotal">0.00</span></strong>
+      </div>
+
+      <div class="modal-botones">
+        <button onclick="confirmarFinalizarVenta()">Sí, finalizar venta</button>
+        <button class="gris" onclick="cerrarConfirmarVenta()">Cancelar</button>
       </div>
     </div>
   </div>

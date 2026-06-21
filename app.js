@@ -4,7 +4,7 @@ let movimientos = cargarLocalStorage("movimientos");
 let ventaActual = [];
 let productoSeleccionadoVenta = null;
 
-const CLAVE_ADMIN = "Maplewood78Q";
+const CLAVE_ADMIN = "1234";
 
 productos = normalizarProductos(productos);
 guardarDatos();
@@ -631,9 +631,23 @@ function finalizarVenta() {
     return;
   }
 
-  const confirmar = confirm("¿Confirmar venta por Q" + calcularTotalVentaActual().toFixed(2) + "?");
+  const total = calcularTotalVentaActual().toFixed(2);
 
-  if (!confirmar) return;
+  document.getElementById("confirmarVentaTotal").textContent = total;
+  document.getElementById("confirmarVentaModal").style.display = "flex";
+}
+
+function cerrarConfirmarVenta() {
+  document.getElementById("confirmarVentaModal").style.display = "none";
+}
+
+function confirmarFinalizarVenta() {
+  document.getElementById("confirmarVentaModal").style.display = "none";
+
+  if (ventaActual.length === 0) {
+    mostrarMensaje("No hay productos en la venta.", "Aviso", "aviso");
+    return;
+  }
 
   let totalVenta = 0;
   let gananciaVenta = 0;
@@ -673,7 +687,11 @@ function finalizarVenta() {
 
   guardarDatos();
 
-  mostrarMensaje("Venta finalizada correctamente. Total: Q" + totalVenta.toFixed(2), "Venta finalizada", "exito");
+  mostrarMensaje(
+    "Venta finalizada correctamente. Total: Q" + totalVenta.toFixed(2),
+    "Venta finalizada",
+    "exito"
+  );
 
   ventaActual = [];
 
@@ -682,3 +700,338 @@ function finalizarVenta() {
   mostrarVentas();
   actualizarResumen();
 }
+
+function mostrarVentas() {
+  const lista = document.getElementById("listaVentas");
+
+  if (!lista) return;
+
+  lista.innerHTML = "";
+
+  if (ventas.length === 0) {
+    lista.innerHTML = `
+      <tr>
+        <td colspan="7">No hay ventas registradas</td>
+      </tr>
+    `;
+    return;
+  }
+
+  ventas.slice().reverse().forEach(function(v) {
+    if (v.productos && Array.isArray(v.productos)) {
+      v.productos.forEach(function(item) {
+        lista.innerHTML += `
+          <tr>
+            <td>${v.fecha}</td>
+            <td>${item.codigo}</td>
+            <td>${item.nombre}</td>
+            <td>${item.presentacion}</td>
+            <td>${item.cantidad}</td>
+            <td>Q${Number(item.subtotal).toFixed(2)}</td>
+            <td>Q${Number(item.ganancia || 0).toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      lista.innerHTML += `
+        <tr class="total-fila">
+          <td colspan="5">Total de venta</td>
+          <td>Q${Number(v.total).toFixed(2)}</td>
+          <td>Q${Number(v.ganancia || 0).toFixed(2)}</td>
+        </tr>
+      `;
+    }
+  });
+}
+
+function borrarVentas() {
+  if (!pedirClaveAdmin()) {
+    return;
+  }
+
+  const confirmar = confirm("¿Seguro que quieres borrar todo el historial de ventas?");
+
+  if (!confirmar) return;
+
+  ventas = [];
+  guardarDatos();
+  mostrarVentas();
+  actualizarResumen();
+
+  mostrarMensaje("Historial de ventas eliminado.", "Listo", "exito");
+}
+
+function mostrarMovimientos() {
+  const lista = document.getElementById("listaMovimientos");
+
+  if (!lista) return;
+
+  lista.innerHTML = "";
+
+  if (movimientos.length === 0) {
+    lista.innerHTML = `
+      <tr>
+        <td colspan="6">No hay movimientos de stock</td>
+      </tr>
+    `;
+    return;
+  }
+
+  movimientos.slice().reverse().forEach(function(m) {
+    lista.innerHTML += `
+      <tr>
+        <td>${m.fecha}</td>
+        <td>${m.codigo}</td>
+        <td>${m.nombre}</td>
+        <td>${m.cantidad}</td>
+        <td>${m.stockAnterior}</td>
+        <td>${m.stockNuevo}</td>
+      </tr>
+    `;
+  });
+}
+
+function descargarInventario() {
+  if (productos.length === 0) {
+    mostrarMensaje("No hay productos para descargar.", "Aviso", "aviso");
+    return;
+  }
+
+  let csv = "Codigo,Producto,Marca,Costo Unidad Base,Stock,Stock Minimo,Unidad Base,Ubicacion,Presentaciones\n";
+
+  productos.forEach(function(p) {
+    const presentacionesTexto = (p.presentaciones || []).map(function(pr) {
+      return `${pr.nombre}: Q${pr.precio} descuenta ${pr.descuenta}`;
+    }).join(" | ");
+
+    csv += `"${p.codigo}","${p.nombre}","${p.autor}",${p.precioCompra},${p.stock},${p.stockMinimo},"${p.unidadBase}","${p.ubicacion}","${presentacionesTexto}"\n`;
+  });
+
+  descargarCSV(csv, "inventario_libreria_osita.csv");
+}
+
+function descargarVentas() {
+  if (ventas.length === 0) {
+    mostrarMensaje("No hay ventas para descargar.", "Aviso", "aviso");
+    return;
+  }
+
+  let csv = "Fecha,Codigo,Producto,Presentacion,Cantidad,Total,Ganancia\n";
+
+  ventas.forEach(function(v) {
+    if (v.productos && Array.isArray(v.productos)) {
+      v.productos.forEach(function(item) {
+        csv += `"${v.fecha}","${item.codigo}","${item.nombre}","${item.presentacion}",${item.cantidad},${item.subtotal},${item.ganancia || 0}\n`;
+      });
+
+      csv += `"${v.fecha}","TOTAL DE VENTA","","","",${v.total},${v.ganancia || 0}\n`;
+    }
+  });
+
+  descargarCSV(csv, "ventas_libreria_osita.csv");
+}
+
+function descargarMovimientos() {
+  if (movimientos.length === 0) {
+    mostrarMensaje("No hay movimientos para descargar.", "Aviso", "aviso");
+    return;
+  }
+
+  let csv = "Fecha,Codigo,Producto,Cantidad Agregada,Stock Anterior,Stock Nuevo\n";
+
+  movimientos.forEach(function(m) {
+    csv += `"${m.fecha}","${m.codigo}","${m.nombre}",${m.cantidad},${m.stockAnterior},${m.stockNuevo}\n`;
+  });
+
+  descargarCSV(csv, "movimientos_libreria_osita.csv");
+}
+
+function descargarCSV(contenido, nombreArchivo) {
+  const archivo = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(archivo);
+
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombreArchivo;
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+
+  URL.revokeObjectURL(url);
+}
+
+function crearRespaldo() {
+  const respaldo = {
+    fecha: new Date().toLocaleString(),
+    productos: productos,
+    ventas: ventas,
+    movimientos: movimientos
+  };
+
+  const archivo = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(archivo);
+
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = "respaldo_libreria_osita.json";
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+
+  URL.revokeObjectURL(url);
+
+  mostrarMensaje("Respaldo creado correctamente.", "Listo", "exito");
+}
+
+function restaurarRespaldo() {
+  if (!pedirClaveAdmin()) {
+    return;
+  }
+
+  const archivoInput = document.getElementById("archivoRespaldo");
+  const archivo = archivoInput.files[0];
+
+  if (!archivo) {
+    mostrarMensaje("Selecciona un archivo de respaldo.", "Aviso", "aviso");
+    return;
+  }
+
+  const confirmar = confirm("Esto reemplazará los datos actuales. ¿Deseas continuar?");
+
+  if (!confirmar) return;
+
+  const lector = new FileReader();
+
+  lector.onload = function(evento) {
+    try {
+      const datos = JSON.parse(evento.target.result);
+
+      if (!Array.isArray(datos.productos) || !Array.isArray(datos.ventas)) {
+        mostrarMensaje("El archivo no es un respaldo válido.", "Error", "error");
+        return;
+      }
+
+      productos = normalizarProductos(datos.productos);
+      ventas = datos.ventas || [];
+      movimientos = datos.movimientos || [];
+      ventaActual = [];
+
+      guardarDatos();
+      mostrarProductos();
+      mostrarVentas();
+      mostrarVentaActual();
+      mostrarMovimientos();
+      actualizarResumen();
+
+      mostrarMensaje("Respaldo restaurado correctamente.", "Listo", "exito");
+    } catch (error) {
+      mostrarMensaje("Error al leer el archivo de respaldo.", "Error", "error");
+    }
+  };
+
+  lector.readAsText(archivo);
+}
+
+function actualizarResumen() {
+  const totalProductos = document.getElementById("totalProductos");
+  const totalStockBajo = document.getElementById("totalStockBajo");
+  const ventasHoy = document.getElementById("ventasHoy");
+  const totalVendidoHoy = document.getElementById("totalVendidoHoy");
+  const gananciaHoy = document.getElementById("gananciaHoy");
+
+  const corteCantidadVentas = document.getElementById("corteCantidadVentas");
+  const corteTotalVendido = document.getElementById("corteTotalVendido");
+  const corteGanancia = document.getElementById("corteGanancia");
+  const productoMasVendido = document.getElementById("productoMasVendido");
+
+  const listaStockBajo = document.getElementById("listaStockBajo");
+
+  const productosStockBajo = productos.filter(function(p) {
+    return (Number(p.stock) || 0) <= (Number(p.stockMinimo) || 0);
+  });
+
+  const fechaHoy = new Date().toLocaleDateString();
+
+  const ventasDeHoy = ventas.filter(function(v) {
+    return String(v.fecha || "").includes(fechaHoy);
+  });
+
+  const vendidoHoy = ventasDeHoy.reduce(function(total, venta) {
+    return total + (Number(venta.total) || 0);
+  }, 0);
+
+  const gananciaDelDia = ventasDeHoy.reduce(function(total, venta) {
+    return total + (Number(venta.ganancia) || 0);
+  }, 0);
+
+  if (totalProductos) totalProductos.textContent = productos.length;
+  if (totalStockBajo) totalStockBajo.textContent = productosStockBajo.length;
+  if (ventasHoy) ventasHoy.textContent = ventasDeHoy.length;
+  if (totalVendidoHoy) totalVendidoHoy.textContent = vendidoHoy.toFixed(2);
+  if (gananciaHoy) gananciaHoy.textContent = gananciaDelDia.toFixed(2);
+
+  if (corteCantidadVentas) corteCantidadVentas.textContent = ventasDeHoy.length;
+  if (corteTotalVendido) corteTotalVendido.textContent = vendidoHoy.toFixed(2);
+  if (corteGanancia) corteGanancia.textContent = gananciaDelDia.toFixed(2);
+  if (productoMasVendido) productoMasVendido.textContent = obtenerProductoMasVendido();
+
+  if (listaStockBajo) {
+    listaStockBajo.innerHTML = "";
+
+    if (productosStockBajo.length === 0) {
+      listaStockBajo.innerHTML = `
+        <tr>
+          <td colspan="5">No hay productos con stock bajo</td>
+        </tr>
+      `;
+    } else {
+      productosStockBajo.forEach(function(p) {
+        listaStockBajo.innerHTML += `
+          <tr>
+            <td>${p.codigo}</td>
+            <td>${p.nombre}</td>
+            <td>${p.stock} ${p.unidadBase || ""}</td>
+            <td>${p.stockMinimo} ${p.unidadBase || ""}</td>
+            <td>${p.ubicacion || "Sin ubicación"}</td>
+          </tr>
+        `;
+      });
+    }
+  }
+}
+
+function obtenerProductoMasVendido() {
+  const conteo = {};
+
+  ventas.forEach(function(v) {
+    if (v.productos && Array.isArray(v.productos)) {
+      v.productos.forEach(function(item) {
+        const clave = item.codigo + " - " + item.nombre;
+
+        if (!conteo[clave]) {
+          conteo[clave] = 0;
+        }
+
+        conteo[clave] += Number(item.cantidad) || 0;
+      });
+    }
+  });
+
+  let mejorProducto = "Ninguno";
+  let mayor = 0;
+
+  Object.keys(conteo).forEach(function(nombre) {
+    if (conteo[nombre] > mayor) {
+      mayor = conteo[nombre];
+      mejorProducto = nombre + " (" + mayor + ")";
+    }
+  });
+
+  return mejorProducto;
+}
+
+mostrarProductos();
+mostrarVentas();
+mostrarVentaActual();
+mostrarMovimientos();
+actualizarResumen();
