@@ -13,9 +13,7 @@
   --sombra: 0 6px 18px rgba(90, 55, 25, 0.12);
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -89,13 +87,8 @@ body {
   color: white;
 }
 
-.apartado {
-  display: none;
-}
-
-.activo-apartado {
-  display: block;
-}
+.apartado { display: none; }
+.activo-apartado { display: block; }
 
 .card {
   background: var(--crema-card);
@@ -107,15 +100,19 @@ body {
   min-width: 0;
 }
 
+.aviso-respaldo {
+  background: #fff0cf;
+  border-left: 6px solid var(--cafe);
+  color: #6b4a2d;
+}
+
 h2 {
   color: var(--cafe-oscuro);
   margin-top: 0;
   margin-bottom: 14px;
 }
 
-h3 {
-  color: var(--cafe-oscuro);
-}
+h3 { color: var(--cafe-oscuro); }
 
 .ayuda {
   color: #7b6654;
@@ -132,8 +129,7 @@ h3 {
   gap: 12px;
 }
 
-input,
-select {
+input, select {
   padding: 12px 13px;
   border: 1px solid #d1b89c;
   border-radius: 12px;
@@ -142,8 +138,7 @@ select {
   width: 100%;
 }
 
-input:focus,
-select:focus {
+input:focus, select:focus {
   outline: none;
   border-color: var(--cafe);
   box-shadow: 0 0 0 3px rgba(155, 103, 56, 0.18);
@@ -182,30 +177,12 @@ button:hover {
   transform: translateY(-1px);
 }
 
-.gris {
-  background: #8f8172;
-}
-
-.rojo,
-.eliminar {
-  background: var(--rojo);
-}
-
-.verde {
-  background: var(--verde);
-}
-
-.azul {
-  background: var(--azul);
-}
-
-.rosa {
-  background: var(--rosado);
-}
-
-.editar {
-  background: var(--cafe);
-}
+.gris { background: #8f8172; }
+.rojo, .eliminar { background: var(--rojo); }
+.verde { background: var(--verde); }
+.azul { background: var(--azul); }
+.rosa { background: var(--rosado); }
+.editar { background: var(--cafe); }
 
 .accion {
   display: inline-block;
@@ -215,6 +192,14 @@ button:hover {
   border-radius: 9px;
 }
 
+.btn-finalizar {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  background: var(--verde);
+  border-radius: 18px;
+}
+
 .ventas-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
@@ -222,9 +207,7 @@ button:hover {
   align-items: start;
 }
 
-#ventas .card {
-  margin-top: 0;
-}
+#ventas .card { margin-top: 0; }
 
 .tabla {
   overflow-x: visible;
@@ -232,6 +215,7 @@ button:hover {
   border-radius: 16px;
   border: 1px solid var(--borde);
   background: white;
+  margin-top: 12px;
 }
 
 table {
@@ -260,9 +244,7 @@ td {
   overflow-wrap: break-word;
 }
 
-tr:hover td {
-  background: #fff4e8;
-}
+tr:hover td { background: #fff4e8; }
 
 .lista-presentaciones {
   font-size: 12px;
@@ -270,35 +252,12 @@ tr:hover td {
   text-align: left;
 }
 
-#ventas table th:nth-child(1),
-#ventas table td:nth-child(1) {
-  width: 11%;
-}
-
-#ventas table th:nth-child(2),
-#ventas table td:nth-child(2) {
-  width: 17%;
-}
-
-#ventas table th:nth-child(3),
-#ventas table td:nth-child(3) {
-  width: 24%;
-}
-
-#ventas table th:nth-child(4),
-#ventas table td:nth-child(4) {
-  width: 12%;
-}
-
-#ventas table th:nth-child(5),
-#ventas table td:nth-child(5) {
-  width: 14%;
-}
-
-#ventas table th:nth-child(6),
-#ventas table td:nth-child(6) {
-  width: 22%;
-}
+#ventas table th:nth-child(1), #ventas table td:nth-child(1) { width: 11%; }
+#ventas table th:nth-child(2), #ventas table td:nth-child(2) { width: 17%; }
+#ventas table th:nth-child(3), #ventas table td:nth-child(3) { width: 24%; }
+#ventas table th:nth-child(4), #ventas table td:nth-child(4) { width: 12%; }
+#ventas table th:nth-child(5), #ventas table td:nth-child(5) { width: 14%; }
+#ventas table th:nth-child(6), #ventas table td:nth-child(6) { width: 22%; }
 
 .total {
   color: var(--cafe);
@@ -324,9 +283,7 @@ tr:hover td {
   gap: 14px;
 }
 
-.resumen-grid-4 {
-  grid-template-columns: repeat(4, 1fr);
-}
+.resumen-grid-4 { grid-template-columns: repeat(4, 1fr); }
 
 .resumen-card {
   background: white;
@@ -395,9 +352,7 @@ tr:hover td {
   line-height: 1.4;
 }
 
-.modal-contenido button {
-  margin-top: 15px;
-}
+.modal-contenido button { margin-top: 15px; }
 
 .select-modal {
   width: 100%;
@@ -416,9 +371,7 @@ tr:hover td {
   flex-wrap: wrap;
 }
 
-.venta-confirmacion {
-  max-width: 430px;
-}
+.venta-confirmacion { max-width: 430px; }
 
 .texto-confirmacion {
   background: #f7eadb;
@@ -445,86 +398,46 @@ tr:hover td {
   color: #2e8b57;
 }
 
+#adminClaveInput, #stockCantidadInput {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+#confirmacionBotonSi { background: var(--verde); }
+
+#stockModalTitulo { margin-bottom: 6px; }
+
+#stockModalTexto {
+  background: #f7eadb;
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: #6b4a2d;
+}
+
 @keyframes aparecer {
-  from {
-    opacity: 0;
-    transform: scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @media (max-width: 1100px) {
-  .ventas-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .resumen-grid,
-  .resumen-grid-4 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .presentacion {
-    grid-template-columns: 1fr;
-  }
+  .ventas-layout { grid-template-columns: 1fr; }
+  .resumen-grid, .resumen-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .presentacion { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
-  .contenedor {
-    width: 94%;
-  }
-
-  .encabezado {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .encabezado h1 {
-    font-size: 28px;
-  }
-
-  .logo {
-    width: 86px;
-    height: 86px;
-  }
-
-  .menu {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .menu button {
-    width: 100%;
-  }
-
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
-  .resumen-grid,
-  .resumen-grid-4 {
-    grid-template-columns: 1fr;
-  }
-
-  .total,
-  .ganancia-texto {
-    text-align: left;
-  }
-
-  .card {
-    padding: 12px;
-  }
-
-  th,
-  td {
-    font-size: 11px;
-    padding: 7px 4px;
-  }
-
-  .accion {
-    font-size: 10px;
-    padding: 5px 6px;
-  }
+  .contenedor { width: 94%; }
+  .encabezado { flex-direction: column; text-align: center; }
+  .encabezado h1 { font-size: 28px; }
+  .logo { width: 86px; height: 86px; }
+  .menu { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .menu button { width: 100%; }
+  .grid { grid-template-columns: 1fr; }
+  .resumen-grid, .resumen-grid-4 { grid-template-columns: 1fr; }
+  .total, .ganancia-texto { text-align: left; }
+  .card { padding: 12px; }
+  th, td { font-size: 11px; padding: 7px 4px; }
+  .accion { font-size: 10px; padding: 5px 6px; }
 }

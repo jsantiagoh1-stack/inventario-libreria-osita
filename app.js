@@ -3,16 +3,14 @@ let ventas = cargarLocalStorage("ventas");
 let movimientos = cargarLocalStorage("movimientos");
 let ventaActual = [];
 let productoSeleccionadoVenta = null;
-
-let accionAdminPendiente = null;
-let accionConfirmacionPendiente = null;
 let productoStockSeleccionado = null;
 let tipoMovimientoStock = "entrada";
+let accionAdminPendiente = null;
+let accionConfirmacionPendiente = null;
 
 const CLAVE_ADMIN = "1234";
 
 productos = normalizarProductos(productos);
-guardarDatos();
 
 function cargarLocalStorage(clave) {
   try {
@@ -29,25 +27,15 @@ function normalizarProductos(lista) {
       const precio = Number(p.precioVenta) || 0;
 
       if (precio > 0) {
-        p.presentaciones = [
-          {
-            nombre: "Unidad",
-            precio: precio,
-            descuenta: 1
-          }
-        ];
+        p.presentaciones = [{ nombre: "Unidad", precio: precio, descuenta: 1 }];
       } else {
         p.presentaciones = [];
       }
     }
 
-    if (!p.unidadBase) {
-      p.unidadBase = "unidad";
-    }
-
-    if (p.stockMinimo === undefined) {
-      p.stockMinimo = 0;
-    }
+    if (!p.unidadBase) p.unidadBase = "unidad";
+    if (p.stockMinimo === undefined) p.stockMinimo = 0;
+    if (!p.ubicacion) p.ubicacion = "";
 
     return p;
   });
@@ -57,7 +45,6 @@ function guardarDatos() {
   localStorage.setItem("productos", JSON.stringify(productos));
   localStorage.setItem("ventas", JSON.stringify(ventas));
   localStorage.setItem("movimientos", JSON.stringify(movimientos));
-  actualizarResumen();
 }
 
 function obtenerValor(id) {
@@ -77,7 +64,7 @@ function mostrarMensaje(texto, titulo = "Aviso", tipo = "aviso") {
   const imagenModal = document.getElementById("mensajeImagen");
 
   if (!modal || !tituloModal || !textoModal || !imagenModal) {
-    alert(texto);
+    alert(titulo + "\n" + texto);
     return;
   }
 
@@ -98,16 +85,23 @@ function mostrarMensaje(texto, titulo = "Aviso", tipo = "aviso") {
 }
 
 function cerrarMensaje() {
-  document.getElementById("mensajeModal").style.display = "none";
+  const modal = document.getElementById("mensajeModal");
+  if (modal) modal.style.display = "none";
 }
 
 function pedirClaveAdmin(accionDespues) {
   accionAdminPendiente = accionDespues;
 
   const input = document.getElementById("adminClaveInput");
-  input.value = "";
+  const modal = document.getElementById("adminModal");
 
-  document.getElementById("adminModal").style.display = "flex";
+  if (!input || !modal) {
+    mostrarMensaje("No se encontró el modal de administrador.", "Error", "error");
+    return;
+  }
+
+  input.value = "";
+  modal.style.display = "flex";
 
   setTimeout(function() {
     input.focus();
@@ -115,47 +109,62 @@ function pedirClaveAdmin(accionDespues) {
 }
 
 function confirmarClaveAdmin() {
-  const clave = document.getElementById("adminClaveInput").value;
+  const input = document.getElementById("adminClaveInput");
+  const modal = document.getElementById("adminModal");
+
+  if (!input || !modal) return;
+
+  const clave = input.value;
+  const accion = accionAdminPendiente;
 
   if (clave !== CLAVE_ADMIN) {
     mostrarMensaje("Contraseña incorrecta.", "Error", "error");
     return;
   }
 
-  const accion = accionAdminPendiente;
+  modal.style.display = "none";
+  accionAdminPendiente = null;
 
-  cerrarAdminModal();
-
-  if (typeof accion === "function") {
-    accion();
-  }
+  if (typeof accion === "function") accion();
 }
 
 function cerrarAdminModal() {
-  document.getElementById("adminModal").style.display = "none";
+  const modal = document.getElementById("adminModal");
+  if (modal) modal.style.display = "none";
   accionAdminPendiente = null;
 }
 
 function mostrarConfirmacion(titulo, texto, accionSi) {
   accionConfirmacionPendiente = accionSi;
 
-  document.getElementById("confirmacionTitulo").textContent = titulo;
-  document.getElementById("confirmacionTexto").textContent = texto;
-  document.getElementById("confirmacionModal").style.display = "flex";
+  const modal = document.getElementById("confirmacionModal");
+  const tituloElemento = document.getElementById("confirmacionTitulo");
+  const textoElemento = document.getElementById("confirmacionTexto");
+
+  if (!modal || !tituloElemento || !textoElemento) {
+    if (confirm(texto) && typeof accionSi === "function") accionSi();
+    accionConfirmacionPendiente = null;
+    return;
+  }
+
+  tituloElemento.textContent = titulo;
+  textoElemento.textContent = texto;
+  modal.style.display = "flex";
 }
 
 function confirmarAccionGeneral() {
-  document.getElementById("confirmacionModal").style.display = "none";
+  const modal = document.getElementById("confirmacionModal");
+  const accion = accionConfirmacionPendiente;
 
-  if (typeof accionConfirmacionPendiente === "function") {
-    accionConfirmacionPendiente();
-  }
-
+  if (modal) modal.style.display = "none";
   accionConfirmacionPendiente = null;
+
+  if (typeof accion === "function") accion();
 }
 
 function cerrarConfirmacionModal() {
-  document.getElementById("confirmacionModal").style.display = "none";
+  const modal = document.getElementById("confirmacionModal");
+  if (modal) modal.style.display = "none";
   accionConfirmacionPendiente = null;
 }
 
@@ -171,8 +180,11 @@ function mostrarApartado(nombre) {
     boton.classList.remove("activo");
   });
 
-  document.getElementById(nombre).classList.add("activo-apartado");
-  document.getElementById("btn-" + nombre).classList.add("activo");
+  const apartadoActivo = document.getElementById(nombre);
+  const botonActivo = document.getElementById("btn-" + nombre);
+
+  if (apartadoActivo) apartadoActivo.classList.add("activo-apartado");
+  if (botonActivo) botonActivo.classList.add("activo");
 
   mostrarProductos();
   mostrarVentas();
@@ -190,11 +202,7 @@ function leerPresentaciones() {
     const descuenta = obtenerNumero("presDescuento" + i);
 
     if (nombre !== "" && precio > 0 && descuenta > 0) {
-      presentaciones.push({
-        nombre: nombre,
-        precio: precio,
-        descuenta: descuenta
-      });
+      presentaciones.push({ nombre: nombre, precio: precio, descuenta: descuenta });
     }
   }
 
@@ -209,7 +217,6 @@ function guardarProducto() {
 
 function guardarProductoAdmin() {
   const editandoId = obtenerValor("editandoId");
-
   const codigo = obtenerValor("codigo");
   const nombre = obtenerValor("nombre");
   const autor = obtenerValor("autor");
@@ -282,16 +289,15 @@ function guardarProductoAdmin() {
   guardarDatos();
   limpiarFormulario();
   mostrarProductos();
+  actualizarResumen();
 }
 
 function mostrarProductos() {
   const lista = document.getElementById("listaProductos");
   const buscador = document.getElementById("buscador");
-
   if (!lista) return;
 
   const busqueda = buscador ? buscador.value.trim().toLowerCase() : "";
-
   lista.innerHTML = "";
 
   const filtrados = productos.filter(function(p) {
@@ -304,22 +310,11 @@ function mostrarProductos() {
       return pr.nombre + " " + pr.precio;
     }).join(" ").toLowerCase();
 
-    return (
-      codigo.includes(busqueda) ||
-      nombre.includes(busqueda) ||
-      autor.includes(busqueda) ||
-      ubicacion.includes(busqueda) ||
-      unidadBase.includes(busqueda) ||
-      presentacionesTexto.includes(busqueda)
-    );
+    return codigo.includes(busqueda) || nombre.includes(busqueda) || autor.includes(busqueda) || ubicacion.includes(busqueda) || unidadBase.includes(busqueda) || presentacionesTexto.includes(busqueda);
   });
 
   if (filtrados.length === 0) {
-    lista.innerHTML = `
-      <tr>
-        <td colspan="6">No se encontraron productos</td>
-      </tr>
-    `;
+    lista.innerHTML = `<tr><td colspan="6">No se encontraron productos</td></tr>`;
     return;
   }
 
@@ -328,18 +323,15 @@ function mostrarProductos() {
     const unidadBase = p.unidadBase || "unidad";
 
     let presentacionesTexto = '<div class="lista-presentaciones">';
-
     (p.presentaciones || []).forEach(function(pr) {
       presentacionesTexto += `${pr.nombre}: <strong>Q${Number(pr.precio).toFixed(2)}</strong><br>`;
     });
-
     presentacionesTexto += "</div>";
 
     const botones = `
       <button class="accion verde" onclick="abrirVentaModal('${p.codigo}')">Agregar</button>
       <button class="accion editar" onclick="editarProducto('${p.id}')">Editar</button>
       <button class="accion azul" onclick="abrirStockModal('${p.id}', 'entrada')">+ Stock</button>
-      <button class="accion rosa" onclick="abrirStockModal('${p.id}', 'salida')">- Stock</button>
       <button class="accion eliminar" onclick="eliminarProducto('${p.id}')">Eliminar</button>
     `;
 
@@ -386,7 +378,6 @@ function editarProducto(id) {
 
   (p.presentaciones || []).forEach(function(pr, index) {
     const numero = index + 1;
-
     if (numero <= 4) {
       document.getElementById("presNombre" + numero).value = pr.nombre || "";
       document.getElementById("presPrecio" + numero).value = pr.precio || "";
@@ -412,91 +403,124 @@ function abrirStockModal(id, tipo) {
     tipoMovimientoStock = tipo;
 
     document.getElementById("stockCantidadInput").value = "";
-
-    if (tipo === "entrada") {
-      document.getElementById("stockModalTitulo").textContent = "Agregar stock";
-      document.getElementById("stockModalTexto").textContent =
-        "Producto: " + producto.nombre + ". Escribe cuánto stock quieres agregar.";
-    } else {
-      document.getElementById("stockModalTitulo").textContent = "Quitar stock";
-      document.getElementById("stockModalTexto").textContent =
-        "Producto: " + producto.nombre + ". Escribe cuánto stock quieres descontar.";
-    }
-
+    document.getElementById("stockModalTitulo").textContent = "Agregar stock";
+    document.getElementById("stockModalTexto").textContent = "Producto: " + producto.nombre + ". Escribe cuánto stock quieres agregar.";
     document.getElementById("stockModal").style.display = "flex";
-
-    setTimeout(function() {
-      document.getElementById("stockCantidadInput").focus();
-    }, 200);
   });
 }
 
-function cerrarStockModal() {
-  document.getElementById("stockModal").style.display = "none";
-  productoStockSeleccionado = null;
-  tipoMovimientoStock = "entrada";
-}
-
 function confirmarCambioStock() {
-  if (!productoStockSeleccionado) {
-    mostrarMensaje("No hay producto seleccionado.", "Error", "error");
-    return;
-  }
+  if (!productoStockSeleccionado) return;
 
   const cantidad = Number(document.getElementById("stockCantidadInput").value);
-
   if (isNaN(cantidad) || cantidad <= 0) {
     mostrarMensaje("Cantidad no válida.", "Aviso", "aviso");
     return;
   }
 
-  const stockAnterior = Number(productoStockSeleccionado.stock) || 0;
+  cambiarStock(productoStockSeleccionado, tipoMovimientoStock, cantidad);
+}
+
+function cerrarStockModal() {
+  const modal = document.getElementById("stockModal");
+  if (modal) modal.style.display = "none";
+  productoStockSeleccionado = null;
+  tipoMovimientoStock = "entrada";
+}
+
+function agregarStockMovimiento() {
+  pedirClaveAdmin(function() {
+    const codigo = obtenerValor("movCodigo");
+    const cantidad = obtenerNumero("movCantidad");
+
+    if (codigo === "" || cantidad <= 0) {
+      mostrarMensaje("Escribe código y cantidad válida.", "Aviso", "aviso");
+      return;
+    }
+
+    const producto = productos.find(function(p) {
+      return p.codigo === codigo;
+    });
+
+    if (!producto) {
+      mostrarMensaje("No se encontró un producto con ese código.", "Error", "error");
+      return;
+    }
+
+    cambiarStock(producto, "entrada", cantidad);
+    limpiarMovimientoInputs();
+  });
+}
+
+function quitarStockMovimiento() {
+  pedirClaveAdmin(function() {
+    const codigo = obtenerValor("movCodigo");
+    const cantidad = obtenerNumero("movCantidad");
+
+    if (codigo === "" || cantidad <= 0) {
+      mostrarMensaje("Escribe código y cantidad válida.", "Aviso", "aviso");
+      return;
+    }
+
+    const producto = productos.find(function(p) {
+      return p.codigo === codigo;
+    });
+
+    if (!producto) {
+      mostrarMensaje("No se encontró un producto con ese código.", "Error", "error");
+      return;
+    }
+
+    const ok = cambiarStock(producto, "salida", cantidad);
+    if (ok) limpiarMovimientoInputs();
+  });
+}
+
+function limpiarMovimientoInputs() {
+  const codigo = document.getElementById("movCodigo");
+  const cantidad = document.getElementById("movCantidad");
+  if (codigo) codigo.value = "";
+  if (cantidad) cantidad.value = "";
+}
+
+function cambiarStock(producto, tipo, cantidad) {
+  const stockAnterior = Number(producto.stock) || 0;
   let stockNuevo = stockAnterior;
   let tipoTexto = "";
 
-  if (tipoMovimientoStock === "entrada") {
+  if (tipo === "entrada") {
     stockNuevo = stockAnterior + cantidad;
     tipoTexto = "Entrada de stock";
   } else {
     if (cantidad > stockAnterior) {
-      mostrarMensaje(
-        "No puedes quitar más stock del que tienes disponible.",
-        "Stock insuficiente",
-        "aviso"
-      );
-      return;
+      mostrarMensaje("No puedes quitar más stock del disponible.", "Stock insuficiente", "aviso");
+      return false;
     }
 
     stockNuevo = stockAnterior - cantidad;
     tipoTexto = "Salida de stock";
   }
 
-  productoStockSeleccionado.stock = stockNuevo;
+  producto.stock = stockNuevo;
 
   movimientos.push({
     fecha: new Date().toLocaleString(),
-    codigo: productoStockSeleccionado.codigo,
-    nombre: productoStockSeleccionado.nombre,
+    codigo: producto.codigo,
+    nombre: producto.nombre,
     tipo: tipoTexto,
-    cantidad: tipoMovimientoStock === "entrada" ? cantidad : -cantidad,
+    cantidad: tipo === "entrada" ? cantidad : -cantidad,
     stockAnterior: stockAnterior,
     stockNuevo: stockNuevo
   });
-
-  const unidad = productoStockSeleccionado.unidadBase || "";
 
   guardarDatos();
   mostrarProductos();
   mostrarMovimientos();
   actualizarResumen();
-
   cerrarStockModal();
 
-  mostrarMensaje(
-    "Stock actualizado correctamente. Nuevo stock: " + stockNuevo + " " + unidad,
-    "Stock actualizado",
-    "exito"
-  );
+  mostrarMensaje("Stock actualizado. Nuevo stock: " + stockNuevo + " " + (producto.unidadBase || ""), "Stock actualizado", "exito");
+  return true;
 }
 
 function eliminarProducto(id) {
@@ -505,10 +529,7 @@ function eliminarProducto(id) {
       return p.id === id;
     });
 
-    if (!producto) {
-      mostrarMensaje("Producto no encontrado.", "Error", "error");
-      return;
-    }
+    if (!producto) return;
 
     mostrarConfirmacion(
       "Eliminar producto",
@@ -521,7 +542,6 @@ function eliminarProducto(id) {
         guardarDatos();
         mostrarProductos();
         actualizarResumen();
-
         mostrarMensaje("Producto eliminado correctamente.", "Listo", "exito");
       }
     );
@@ -583,7 +603,8 @@ function abrirVentaModal(codigo) {
 }
 
 function cerrarVentaModal() {
-  document.getElementById("ventaModal").style.display = "none";
+  const modal = document.getElementById("ventaModal");
+  if (modal) modal.style.display = "none";
   productoSeleccionadoVenta = null;
 }
 
@@ -602,7 +623,6 @@ function confirmarAgregarVenta() {
   }
 
   agregarItemAVenta(productoSeleccionadoVenta.codigo, cantidad, indice);
-
   cerrarVentaModal();
 
   document.getElementById("codigoVenta").value = "";
@@ -611,7 +631,6 @@ function confirmarAgregarVenta() {
 
 function agregarAVenta() {
   const codigo = obtenerValor("codigoVenta");
-
   if (codigo === "") {
     mostrarMensaje("Escribe el código del producto.", "Aviso", "aviso");
     return;
@@ -631,7 +650,6 @@ function agregarItemAVenta(codigo, cantidad, indicePresentacion) {
   }
 
   const presentacion = producto.presentaciones[indicePresentacion];
-
   if (!presentacion) {
     mostrarMensaje("Presentación no encontrada.", "Error", "error");
     return;
@@ -646,10 +664,7 @@ function agregarItemAVenta(codigo, cantidad, indicePresentacion) {
   });
 
   const stockYaEnVenta = ventaActual.reduce(function(total, item) {
-    if (item.codigo === codigo) {
-      return total + Number(item.stockDescontar || 0);
-    }
-
+    if (item.codigo === codigo) return total + Number(item.stockDescontar || 0);
     return total;
   }, 0);
 
@@ -699,11 +714,7 @@ function mostrarVentaActual() {
   let ganancia = 0;
 
   if (ventaActual.length === 0) {
-    lista.innerHTML = `
-      <tr>
-        <td colspan="6">No hay productos en la venta</td>
-      </tr>
-    `;
+    lista.innerHTML = `<tr><td colspan="6">No hay productos en la venta</td></tr>`;
   }
 
   ventaActual.forEach(function(item, index) {
@@ -717,9 +728,7 @@ function mostrarVentaActual() {
         <td>${item.cantidad}</td>
         <td>Q${Number(item.precioVenta).toFixed(2)}</td>
         <td>Q${Number(item.subtotal).toFixed(2)}</td>
-        <td>
-          <button class="accion eliminar" onclick="quitarDeVenta(${index})">Quitar</button>
-        </td>
+        <td><button class="accion eliminar" onclick="quitarDeVenta(${index})">Quitar</button></td>
       </tr>
     `;
   });
@@ -754,17 +763,17 @@ function finalizarVenta() {
   }
 
   const total = calcularTotalVentaActual().toFixed(2);
-
   document.getElementById("confirmarVentaTotal").textContent = total;
   document.getElementById("confirmarVentaModal").style.display = "flex";
 }
 
 function cerrarConfirmarVenta() {
-  document.getElementById("confirmarVentaModal").style.display = "none";
+  const modal = document.getElementById("confirmarVentaModal");
+  if (modal) modal.style.display = "none";
 }
 
 function confirmarFinalizarVenta() {
-  document.getElementById("confirmarVentaModal").style.display = "none";
+  cerrarConfirmarVenta();
 
   if (ventaActual.length === 0) {
     mostrarMensaje("No hay productos en la venta.", "Aviso", "aviso");
@@ -806,36 +815,25 @@ function confirmarFinalizarVenta() {
   };
 
   ventas.push(venta);
-
-  guardarDatos();
-
-  mostrarMensaje(
-    "Venta finalizada correctamente. Total: Q" + totalVenta.toFixed(2),
-    "Venta finalizada",
-    "exito"
-  );
-
   ventaActual = [];
 
+  guardarDatos();
   mostrarVentaActual();
   mostrarProductos();
   mostrarVentas();
   actualizarResumen();
+
+  mostrarMensaje("Venta finalizada correctamente. Total: Q" + totalVenta.toFixed(2), "Venta finalizada", "exito");
 }
 
 function mostrarVentas() {
   const lista = document.getElementById("listaVentas");
-
   if (!lista) return;
 
   lista.innerHTML = "";
 
   if (ventas.length === 0) {
-    lista.innerHTML = `
-      <tr>
-        <td colspan="7">No hay ventas registradas</td>
-      </tr>
-    `;
+    lista.innerHTML = `<tr><td colspan="7">No hay ventas registradas</td></tr>`;
     return;
   }
 
@@ -868,34 +866,24 @@ function mostrarVentas() {
 
 function borrarVentas() {
   pedirClaveAdmin(function() {
-    mostrarConfirmacion(
-      "Borrar historial",
-      "¿Seguro que quieres borrar todo el historial de ventas?",
-      function() {
-        ventas = [];
-        guardarDatos();
-        mostrarVentas();
-        actualizarResumen();
-
-        mostrarMensaje("Historial de ventas eliminado.", "Listo", "exito");
-      }
-    );
+    mostrarConfirmacion("Borrar historial", "¿Seguro que quieres borrar todo el historial de ventas?", function() {
+      ventas = [];
+      guardarDatos();
+      mostrarVentas();
+      actualizarResumen();
+      mostrarMensaje("Historial de ventas eliminado.", "Listo", "exito");
+    });
   });
 }
 
 function mostrarMovimientos() {
   const lista = document.getElementById("listaMovimientos");
-
   if (!lista) return;
 
   lista.innerHTML = "";
 
   if (movimientos.length === 0) {
-    lista.innerHTML = `
-      <tr>
-        <td colspan="7">No hay movimientos de stock</td>
-      </tr>
-    `;
+    lista.innerHTML = `<tr><td colspan="7">No hay movimientos de stock</td></tr>`;
     return;
   }
 
@@ -1021,13 +1009,9 @@ function restaurarRespaldoAdmin() {
     return;
   }
 
-  mostrarConfirmacion(
-    "Restaurar respaldo",
-    "Esto reemplazará los datos actuales. ¿Deseas continuar?",
-    function() {
-      leerArchivoRespaldo(archivo);
-    }
-  );
+  mostrarConfirmacion("Restaurar respaldo", "Esto reemplazará los datos actuales. ¿Deseas continuar?", function() {
+    leerArchivoRespaldo(archivo);
+  });
 }
 
 function leerArchivoRespaldo(archivo) {
@@ -1069,12 +1053,10 @@ function actualizarResumen() {
   const ventasHoy = document.getElementById("ventasHoy");
   const totalVendidoHoy = document.getElementById("totalVendidoHoy");
   const gananciaHoy = document.getElementById("gananciaHoy");
-
   const corteCantidadVentas = document.getElementById("corteCantidadVentas");
   const corteTotalVendido = document.getElementById("corteTotalVendido");
   const corteGanancia = document.getElementById("corteGanancia");
   const productoMasVendido = document.getElementById("productoMasVendido");
-
   const listaStockBajo = document.getElementById("listaStockBajo");
 
   const productosStockBajo = productos.filter(function(p) {
@@ -1082,7 +1064,6 @@ function actualizarResumen() {
   });
 
   const fechaHoy = new Date().toLocaleDateString();
-
   const ventasDeHoy = ventas.filter(function(v) {
     return String(v.fecha || "").includes(fechaHoy);
   });
@@ -1100,7 +1081,6 @@ function actualizarResumen() {
   if (ventasHoy) ventasHoy.textContent = ventasDeHoy.length;
   if (totalVendidoHoy) totalVendidoHoy.textContent = vendidoHoy.toFixed(2);
   if (gananciaHoy) gananciaHoy.textContent = gananciaDelDia.toFixed(2);
-
   if (corteCantidadVentas) corteCantidadVentas.textContent = ventasDeHoy.length;
   if (corteTotalVendido) corteTotalVendido.textContent = vendidoHoy.toFixed(2);
   if (corteGanancia) corteGanancia.textContent = gananciaDelDia.toFixed(2);
@@ -1110,11 +1090,7 @@ function actualizarResumen() {
     listaStockBajo.innerHTML = "";
 
     if (productosStockBajo.length === 0) {
-      listaStockBajo.innerHTML = `
-        <tr>
-          <td colspan="5">No hay productos con stock bajo</td>
-        </tr>
-      `;
+      listaStockBajo.innerHTML = `<tr><td colspan="5">No hay productos con stock bajo</td></tr>`;
     } else {
       productosStockBajo.forEach(function(p) {
         listaStockBajo.innerHTML += `
@@ -1138,11 +1114,7 @@ function obtenerProductoMasVendido() {
     if (v.productos && Array.isArray(v.productos)) {
       v.productos.forEach(function(item) {
         const clave = item.codigo + " - " + item.nombre;
-
-        if (!conteo[clave]) {
-          conteo[clave] = 0;
-        }
-
+        if (!conteo[clave]) conteo[clave] = 0;
         conteo[clave] += Number(item.cantidad) || 0;
       });
     }
@@ -1161,6 +1133,7 @@ function obtenerProductoMasVendido() {
   return mejorProducto;
 }
 
+guardarDatos();
 mostrarProductos();
 mostrarVentas();
 mostrarVentaActual();

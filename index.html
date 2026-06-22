@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="icono-app.png">
   <link rel="manifest" href="manifest.json">
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
@@ -34,34 +34,19 @@
     </nav>
 
     <section id="inicio" class="apartado activo-apartado">
+      <div class="card aviso-respaldo">
+        <strong>Consejo:</strong> recuerda crear un respaldo al final del día.
+      </div>
+
       <div class="card">
         <h2>Resumen general</h2>
 
         <div class="resumen-grid">
-          <div class="resumen-card">
-            <h3>Productos</h3>
-            <p id="totalProductos">0</p>
-          </div>
-
-          <div class="resumen-card">
-            <h3>Stock bajo</h3>
-            <p id="totalStockBajo">0</p>
-          </div>
-
-          <div class="resumen-card">
-            <h3>Ventas de hoy</h3>
-            <p id="ventasHoy">0</p>
-          </div>
-
-          <div class="resumen-card">
-            <h3>Vendido hoy</h3>
-            <p>Q<span id="totalVendidoHoy">0.00</span></p>
-          </div>
-
-          <div class="resumen-card">
-            <h3>Ganancia hoy</h3>
-            <p>Q<span id="gananciaHoy">0.00</span></p>
-          </div>
+          <div class="resumen-card"><h3>Productos</h3><p id="totalProductos">0</p></div>
+          <div class="resumen-card"><h3>Stock bajo</h3><p id="totalStockBajo">0</p></div>
+          <div class="resumen-card"><h3>Ventas de hoy</h3><p id="ventasHoy">0</p></div>
+          <div class="resumen-card"><h3>Vendido hoy</h3><p>Q<span id="totalVendidoHoy">0.00</span></p></div>
+          <div class="resumen-card"><h3>Ganancia hoy</h3><p>Q<span id="gananciaHoy">0.00</span></p></div>
         </div>
       </div>
 
@@ -69,25 +54,10 @@
         <h2>Corte de caja del día</h2>
 
         <div class="resumen-grid resumen-grid-4">
-          <div class="resumen-card">
-            <h3>Cantidad de ventas</h3>
-            <p id="corteCantidadVentas">0</p>
-          </div>
-
-          <div class="resumen-card">
-            <h3>Total vendido</h3>
-            <p>Q<span id="corteTotalVendido">0.00</span></p>
-          </div>
-
-          <div class="resumen-card">
-            <h3>Ganancia estimada</h3>
-            <p>Q<span id="corteGanancia">0.00</span></p>
-          </div>
-
-          <div class="resumen-card">
-            <h3>Producto más vendido</h3>
-            <p id="productoMasVendido">Ninguno</p>
-          </div>
+          <div class="resumen-card"><h3>Cantidad de ventas</h3><p id="corteCantidadVentas">0</p></div>
+          <div class="resumen-card"><h3>Total vendido</h3><p>Q<span id="corteTotalVendido">0.00</span></p></div>
+          <div class="resumen-card"><h3>Ganancia estimada</h3><p>Q<span id="corteGanancia">0.00</span></p></div>
+          <div class="resumen-card"><h3>Producto más vendido</h3><p id="productoMasVendido">Ninguno</p></div>
         </div>
       </div>
 
@@ -129,8 +99,9 @@
         </div>
 
         <h3>Presentaciones de venta</h3>
+
         <p class="ayuda">
-          Producto normal: Unidad / Precio / Descuenta 1.  
+          Producto normal: Unidad / Precio / Descuenta 1.
           Hojas: Resma, Ciento, Medio ciento, Por quetzal.
         </p>
 
@@ -172,11 +143,7 @@
         <div class="card">
           <h2>Buscar producto</h2>
 
-          <input 
-            id="buscador"
-            type="text"
-            oninput="mostrarProductos()"
-            placeholder="Buscar por código, producto, marca, precio o ubicación">
+          <input id="buscador" type="text" oninput="mostrarProductos()" placeholder="Buscar por código, producto, marca, precio o ubicación">
 
           <div class="tabla">
             <table>
@@ -195,7 +162,7 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card venta-card">
           <h2>Venta actual</h2>
 
           <div class="grid">
@@ -225,7 +192,7 @@
           <h2 class="total">Total: Q<span id="totalVenta">0.00</span></h2>
           <h3 class="ganancia-texto">Ganancia estimada: Q<span id="gananciaVentaActual">0.00</span></h3>
 
-          <button onclick="finalizarVenta()">Finalizar venta</button>
+          <button class="btn-finalizar" onclick="finalizarVenta()">Finalizar venta</button>
         </div>
 
       </div>
@@ -260,7 +227,15 @@
 
     <section id="movimientos" class="apartado">
       <div class="card">
-        <h2>Entradas de stock</h2>
+        <h2>Movimientos de stock</h2>
+
+        <div class="grid">
+          <input id="movCodigo" placeholder="Código del producto">
+          <input id="movCantidad" type="number" step="0.01" placeholder="Cantidad">
+        </div>
+
+        <button onclick="agregarStockMovimiento()">Agregar stock</button>
+        <button class="rojo" onclick="quitarStockMovimiento()">Quitar stock</button>
 
         <div class="tabla">
           <table>
@@ -269,7 +244,8 @@
                 <th>Fecha</th>
                 <th>Código</th>
                 <th>Producto</th>
-                <th>Cantidad agregada</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
                 <th>Stock anterior</th>
                 <th>Stock nuevo</th>
               </tr>
@@ -291,6 +267,7 @@
         <button onclick="crearRespaldo()">Crear respaldo</button>
 
         <h3>Restaurar respaldo</h3>
+
         <input type="file" id="archivoRespaldo" accept=".json">
 
         <button onclick="restaurarRespaldo()">Restaurar datos</button>
@@ -333,9 +310,7 @@
 
       <h3>¿Finalizar venta?</h3>
 
-      <p class="texto-confirmacion">
-        Revisa bien la venta antes de finalizar.
-      </p>
+      <p class="texto-confirmacion">Revisa bien la venta antes de finalizar.</p>
 
       <div class="total-confirmacion">
         Total a cobrar:
@@ -349,6 +324,52 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <div id="adminModal" class="modal-mensaje">
+    <div class="modal-contenido">
+      <img src="img_admin.png" alt="Administrador" class="modal-img">
+
+      <h3>Acceso administrador</h3>
+      <p>Ingresa la contraseña para continuar.</p>
+
+      <input id="adminClaveInput" type="password" placeholder="Contraseña">
+
+      <div class="modal-botones">
+        <button onclick="confirmarClaveAdmin()">Continuar</button>
+        <button class="gris" onclick="cerrarAdminModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="stockModal" class="modal-mensaje">
+    <div class="modal-contenido">
+      <img src="img_aviso.png" alt="Stock" class="modal-img">
+
+      <h3 id="stockModalTitulo">Actualizar stock</h3>
+      <p id="stockModalTexto">Escribe la cantidad.</p>
+
+      <input id="stockCantidadInput" type="number" step="0.01" placeholder="Cantidad">
+
+      <div class="modal-botones">
+        <button onclick="confirmarCambioStock()">Guardar</button>
+        <button class="gris" onclick="cerrarStockModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmacionModal" class="modal-mensaje">
+    <div class="modal-contenido">
+      <img src="img_aviso.png" alt="Confirmación" class="modal-img">
+
+      <h3 id="confirmacionTitulo">Confirmar acción</h3>
+      <p id="confirmacionTexto">¿Deseas continuar?</p>
+
+      <div class="modal-botones">
+        <button id="confirmacionBotonSi" onclick="confirmarAccionGeneral()">Sí, continuar</button>
+        <button class="gris" onclick="cerrarConfirmacionModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=7"></script>
 </body>
 </html>
