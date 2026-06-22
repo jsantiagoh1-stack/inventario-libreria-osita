@@ -876,6 +876,7 @@ function borrarVentas() {
   });
 }
 
+
 function mostrarMovimientos() {
   const lista = document.getElementById("listaMovimientos");
   if (!lista) return;
@@ -899,6 +900,24 @@ function mostrarMovimientos() {
         <td>${m.stockNuevo}</td>
       </tr>
     `;
+  });
+}
+
+function borrarMovimientos() {
+  pedirClaveAdmin(function() {
+    mostrarConfirmacion(
+      "Borrar movimientos",
+      "¿Seguro que quieres borrar todo el historial de movimientos de stock?",
+      function() {
+        movimientos = [];
+
+        guardarDatos();
+        mostrarMovimientos();
+        actualizarResumen();
+
+        mostrarMensaje("Historial de movimientos eliminado.", "Listo", "exito");
+      }
+    );
   });
 }
 
