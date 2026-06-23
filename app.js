@@ -1204,7 +1204,7 @@ function probarCorteDia() {
       mostrarCortes();
 
       generarPDFCorte(corte);
-      crearRespaldoAutomaticoCorte(corte);
+      crearRespaldoAutomaticoCorte(corte, false);
 
       fechaUltimoCorte = new Date().toISOString();
       localStorage.setItem("fechaUltimoCorte", fechaUltimoCorte);
@@ -1520,7 +1520,7 @@ function generarPDFCorte(corte) {
   };
 }
 
-function crearRespaldoAutomaticoCorte(corte) {
+function crearRespaldoAutomaticoCorte(corte, descargar) {
   const respaldo = {
     fecha: new Date().toLocaleString(),
     motivo: "Respaldo automático generado al finalizar corte",
@@ -1531,15 +1531,21 @@ function crearRespaldoAutomaticoCorte(corte) {
     cortes: cortes
   };
 
+  localStorage.setItem("ultimoRespaldoAutomatico", JSON.stringify(respaldo));
+
+  if (descargar !== true) {
+    return;
+  }
+
   const contenido = JSON.stringify(respaldo, null, 2);
-const enlace = document.createElement("a");
+  const enlace = document.createElement("a");
 
-enlace.href = "data:application/json;charset=utf-8," + encodeURIComponent(contenido);
-enlace.download = "respaldo_automatico_libreria_osita.json";
+  enlace.href = "data:application/json;charset=utf-8," + encodeURIComponent(contenido);
+  enlace.download = "respaldo_automatico_libreria_osita.json";
 
-document.body.appendChild(enlace);
-enlace.click();
-document.body.removeChild(enlace);
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
 }
 
 function borrarCortes() {
