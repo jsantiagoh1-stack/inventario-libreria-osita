@@ -194,6 +194,14 @@ function mostrarApartado(nombre) {
   mostrarVentaActual();
   mostrarMovimientos();
   actualizarResumen();
+  document.getElementById("ventasHoy").textContent = "0";
+ document.getElementById("totalVendidoHoy").textContent = "0.00";
+ document.getElementById("gananciaHoy").textContent = "0.00";
+
+ document.getElementById("corteCantidadVentas").textContent = "0";
+ document.getElementById("corteTotalVendido").textContent = "0.00";
+ document.getElementById("corteGanancia").textContent = "0.00";
+ document.getElementById("productoMasVendido").textContent = "Ninguno";
 }
 
 function leerPresentaciones() {
@@ -1180,7 +1188,7 @@ function probarCorteDia() {
 
   mostrarConfirmacion(
     "Finalizar corte del día",
-    "¿Seguro que deseas finalizar el corte? Se guardará el historial y se intentará generar el PDF.",
+    "¿Seguro que deseas finalizar el corte? Se guardará el historial y se reiniciará el corte del día.",
     function() {
       const totalVendido = ventasDelDia.reduce(function(total, venta) {
         return total + (Number(venta.total) || 0);
@@ -1199,32 +1207,25 @@ function probarCorteDia() {
         ventas: ventasDelDia
       };
 
-      // 1. Guardar corte
       cortes.push(corte);
 
-      // 2. Cerrar el periodo del corte ANTES del PDF
-      fechaUltimoCorte = new Date().toISOString();
+      fechaUltimoCorte = new Date().toLocaleString();
       localStorage.setItem("fechaUltimoCorte", fechaUltimoCorte);
 
-      // 3. Guardar datos y limpiar pantalla
       guardarDatos();
       mostrarCortes();
       actualizarResumen();
 
-      // 4. Guardar respaldo interno sin abrir JSON en iPad
-      crearRespaldoAutomaticoCorte(corte, false);
+      document.getElementById("ventasHoy").textContent = "0";
+      document.getElementById("totalVendidoHoy").textContent = "0.00";
+      document.getElementById("gananciaHoy").textContent = "0.00";
 
-      // 5. Intentar generar PDF sin bloquear el cierre del corte
-      try {
-        generarPDFCorte(corte);
-      } catch (error) {
-        mostrarMensaje(
-          "El corte fue guardado, pero el iPad no pudo abrir el PDF. Puedes revisar el historial de cortes.",
-          "PDF no generado",
-          "aviso"
-        );
-        return;
-      }
+      document.getElementById("corteCantidadVentas").textContent = "0";
+      document.getElementById("corteTotalVendido").textContent = "0.00";
+      document.getElementById("corteGanancia").textContent = "0.00";
+      document.getElementById("productoMasVendido").textContent = "Ninguno";
+
+      crearRespaldoAutomaticoCorte(corte, false);
 
       mostrarMensaje(
         "Corte guardado correctamente. Ventas: " + ventasDelDia.length + " | Total: Q" + totalVendido.toFixed(2),
@@ -1271,7 +1272,7 @@ function obtenerVentasDeHoy() {
     }
 
     const fechaVenta = convertirFechaVenta(venta.fecha);
-    const fechaCorte = new Date(fechaUltimoCorte);
+    const fechaCorte = convertirFechaVenta(fechaUltimoCorte);
 
     if (!fechaVenta || isNaN(fechaVenta.getTime()) || isNaN(fechaCorte.getTime())) {
       return true;
