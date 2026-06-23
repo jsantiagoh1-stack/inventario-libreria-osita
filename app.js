@@ -1,6 +1,8 @@
 let productos = cargarLocalStorage("productos");
 let ventas = cargarLocalStorage("ventas");
 let movimientos = cargarLocalStorage("movimientos");
+let cortes = cargarLocalStorage("cortes");
+let fechaUltimoCorte = localStorage.getItem("fechaUltimoCorte") || "";
 let ventaActual = [];
 let productoSeleccionadoVenta = null;
 let productoStockSeleccionado = null;
@@ -45,6 +47,7 @@ function guardarDatos() {
   localStorage.setItem("productos", JSON.stringify(productos));
   localStorage.setItem("ventas", JSON.stringify(ventas));
   localStorage.setItem("movimientos", JSON.stringify(movimientos));
+  localStorage.setItem("cortes", JSON.stringify(cortes));
 }
 
 function obtenerValor(id) {
@@ -1069,9 +1072,10 @@ function leerArchivoRespaldo(archivo) {
 function actualizarResumen() {
   const totalProductos = document.getElementById("totalProductos");
   const totalStockBajo = document.getElementById("totalStockBajo");
-  const ventasHoy = document.getElementById("ventasHoy");
-  const totalVendidoHoy = document.getElementById("totalVendidoHoy");
-  const gananciaHoy = document.getElementById("gananciaHoy");
+  const ventasHoyElemento = document.getElementById("ventasHoy");
+  const totalVendidoHoyElemento = document.getElementById("totalVendidoHoy");
+  const gananciaHoyElemento = document.getElementById("gananciaHoy");
+
   const corteCantidadVentas = document.getElementById("corteCantidadVentas");
   const corteTotalVendido = document.getElementById("corteTotalVendido");
   const corteGanancia = document.getElementById("corteGanancia");
@@ -1082,28 +1086,29 @@ function actualizarResumen() {
     return (Number(p.stock) || 0) <= (Number(p.stockMinimo) || 0);
   });
 
-  const fechaHoy = new Date().toLocaleDateString();
-  const ventasDeHoy = ventas.filter(function(v) {
-    return String(v.fecha || "").includes(fechaHoy);
-  });
+  const ventasHoy = obtenerVentasDeHoy();
 
-  const vendidoHoy = ventasDeHoy.reduce(function(total, venta) {
+  const vendidoHoy = ventasHoy.reduce(function(total, venta) {
     return total + (Number(venta.total) || 0);
   }, 0);
 
-  const gananciaDelDia = ventasDeHoy.reduce(function(total, venta) {
+  const gananciaDelDia = ventasHoy.reduce(function(total, venta) {
     return total + (Number(venta.ganancia) || 0);
   }, 0);
 
   if (totalProductos) totalProductos.textContent = productos.length;
   if (totalStockBajo) totalStockBajo.textContent = productosStockBajo.length;
-  if (ventasHoy) ventasHoy.textContent = ventasDeHoy.length;
-  if (totalVendidoHoy) totalVendidoHoy.textContent = vendidoHoy.toFixed(2);
-  if (gananciaHoy) gananciaHoy.textContent = gananciaDelDia.toFixed(2);
-  if (corteCantidadVentas) corteCantidadVentas.textContent = ventasDeHoy.length;
+
+  if (ventasHoyElemento) ventasHoyElemento.textContent = ventasHoy.length;
+  if (totalVendidoHoyElemento) totalVendidoHoyElemento.textContent = vendidoHoy.toFixed(2);
+  if (gananciaHoyElemento) gananciaHoyElemento.textContent = gananciaDelDia.toFixed(2);
+
+  if (corteCantidadVentas) corteCantidadVentas.textContent = ventasHoy.length;
   if (corteTotalVendido) corteTotalVendido.textContent = vendidoHoy.toFixed(2);
   if (corteGanancia) corteGanancia.textContent = gananciaDelDia.toFixed(2);
-  if (productoMasVendido) productoMasVendido.textContent = obtenerProductoMasVendido();
+  if (productoMasVendido) {
+  productoMasVendido.textContent = ventasHoy.length === 0 ? "Ninguno" : obtenerProductoMasVendido();
+}
 
   if (listaStockBajo) {
     listaStockBajo.innerHTML = "";
@@ -1116,9 +1121,9 @@ function actualizarResumen() {
           <tr>
             <td>${p.codigo}</td>
             <td>${p.nombre}</td>
-            <td>${p.stock} ${p.unidadBase || ""}</td>
-            <td>${p.stockMinimo} ${p.unidadBase || ""}</td>
-            <td>${p.ubicacion || "Sin ubicación"}</td>
+            <td>${p.marca || ""}</td>
+            <td>${p.stock}</td>
+            <td>${p.ubicacion || ""}</td>
           </tr>
         `;
       });
@@ -1127,13 +1132,18 @@ function actualizarResumen() {
 }
 
 function obtenerProductoMasVendido() {
+  const ventasHoy = obtenerVentasDeHoy();
   const conteo = {};
 
-  ventas.forEach(function(v) {
-    if (v.productos && Array.isArray(v.productos)) {
-      v.productos.forEach(function(item) {
+  ventasHoy.forEach(function(venta) {
+    if (venta.productos && Array.isArray(venta.productos)) {
+      venta.productos.forEach(function(item) {
         const clave = item.codigo + " - " + item.nombre;
-        if (!conteo[clave]) conteo[clave] = 0;
+
+        if (!conteo[clave]) {
+          conteo[clave] = 0;
+        }
+
         conteo[clave] += Number(item.cantidad) || 0;
       });
     }
@@ -1158,3 +1168,376 @@ mostrarVentas();
 mostrarVentaActual();
 mostrarMovimientos();
 actualizarResumen();
+
+function probarCorteDia() {
+  const ventasDelDia = obtenerVentasDeHoy();
+
+  if (ventasDelDia.length === 0) {
+    actualizarResumen();
+    mostrarMensaje("No hay ventas registradas hoy para hacer corte.", "Aviso", "aviso");
+    return;
+  }
+
+  const totalVendido = ventasDelDia.reduce(function(total, venta) {
+    return total + (Number(venta.total) || 0);
+  }, 0);
+
+  const gananciaTotal = ventasDelDia.reduce(function(total, venta) {
+    return total + (Number(venta.ganancia) || 0);
+  }, 0);
+
+  const corte = {
+  id: Date.now().toString(),
+  fechaCompleta: new Date().toLocaleString(),
+  cantidadVentas: ventasDelDia.length,
+  totalVendido: totalVendido,
+  ganancia: gananciaTotal,
+  ventas: ventasDelDia
+  };
+
+  // 1. Primero guarda el corte
+  cortes.push(corte);
+  guardarDatos();
+  mostrarCortes();
+
+  // 2. Luego genera PDF y respaldo
+  generarPDFCorte(corte);
+  crearRespaldoAutomaticoCorte(corte);
+
+  // 3. Hasta el final reinicia el corte para la próxima venta
+  fechaUltimoCorte = new Date().toISOString();
+  localStorage.setItem("fechaUltimoCorte", fechaUltimoCorte);
+
+  // 4. Actualiza pantalla
+  actualizarResumen();
+
+  mostrarMensaje(
+    "Corte guardado. Ventas: " + ventasDelDia.length + " | Total: Q" + totalVendido.toFixed(2),
+    "Corte guardado",
+    "exito"
+  );
+}
+
+function convertirFechaVenta(fechaTexto) {
+  if (!fechaTexto) return null;
+
+  const partes = String(fechaTexto).split(",");
+  const fecha = partes[0].trim();
+  const hora = partes[1] ? partes[1].trim() : "00:00:00";
+
+  const fechaPartes = fecha.split("/");
+  const horaPartes = hora.split(":");
+
+  const dia = Number(fechaPartes[0]);
+  const mes = Number(fechaPartes[1]) - 1;
+  const anio = Number(fechaPartes[2]);
+
+  const horas = Number(horaPartes[0]) || 0;
+  const minutos = Number(horaPartes[1]) || 0;
+  const segundos = Number(horaPartes[2]) || 0;
+
+  return new Date(anio, mes, dia, horas, minutos, segundos);
+}
+
+function obtenerVentasDeHoy() {
+  const fechaHoy = new Date().toLocaleDateString();
+
+  return ventas.filter(function(venta) {
+    const esDeHoy = String(venta.fecha || "").includes(fechaHoy);
+
+    if (!esDeHoy) {
+      return false;
+    }
+
+    if (!fechaUltimoCorte) {
+      return true;
+    }
+
+    const fechaVenta = convertirFechaVenta(venta.fecha);
+    const fechaCorte = new Date(fechaUltimoCorte);
+
+    if (!fechaVenta || isNaN(fechaVenta.getTime()) || isNaN(fechaCorte.getTime())) {
+      return true;
+    }
+
+    return fechaVenta.getTime() > fechaCorte.getTime();
+  });
+}
+
+  function mostrarCortes() {
+  const lista = document.getElementById("listaCortes");
+
+  if (!lista) return;
+
+  lista.innerHTML = "";
+
+  if (!cortes || cortes.length === 0) {
+    lista.innerHTML = `
+      <tr>
+        <td colspan="4">No hay cortes registrados</td>
+      </tr>
+    `;
+    return;
+  }
+
+  cortes.slice().reverse().forEach(function(corte) {
+    lista.innerHTML += `
+      <tr>
+        <td>${corte.fechaCompleta}</td>
+        <td>${corte.cantidadVentas}</td>
+        <td>Q${Number(corte.totalVendido || 0).toFixed(2)}</td>
+        <td>Q${Number(corte.ganancia || 0).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+}
+
+function generarPDFCorte(corte) {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    mostrarMensaje("No se pudo cargar el generador de PDF.", "Error", "error");
+    return;
+  }
+
+  const jsPDF = window.jspdf.jsPDF;
+
+  function dibujarPDF(logoDataUrl) {
+    const doc = new jsPDF();
+
+    const cafe = [122, 74, 36];
+    const cafeOscuro = [90, 50, 20];
+    const crema = [248, 239, 227];
+    const gris = [90, 90, 90];
+
+    const margen = 15;
+    let y = 15;
+
+    // Encabezado
+    doc.setFillColor(cafe[0], cafe[1], cafe[2]);
+    doc.rect(0, 0, 210, 35, "F");
+
+    // Logo
+    if (logoDataUrl) {
+      try {
+        doc.addImage(logoDataUrl, "PNG", 182, 6, 18, 18);
+      } catch (e) {}
+    }
+
+    // Título
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("Librería Osita", margen, 15);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Pequeños detalles, grandes ideas", margen, 22);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("CORTE DE CAJA", 155, 15, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(corte.fechaCompleta, 155, 22, { align: "right" });
+
+    y = 48;
+
+    // Título sección
+    doc.setTextColor(cafeOscuro[0], cafeOscuro[1], cafeOscuro[2]);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Resumen del corte del día", margen, y);
+
+    y += 8;
+
+    // Tarjetas resumen
+    const cardY = y;
+    const cardH = 25;
+    const cardW = 42;
+    const gap = 4;
+
+    function tarjeta(x, titulo, valor) {
+      doc.setFillColor(crema[0], crema[1], crema[2]);
+      doc.roundedRect(x, cardY, cardW, cardH, 3, 3, "F");
+
+      doc.setTextColor(gris[0], gris[1], gris[2]);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text(titulo, x + cardW / 2, cardY + 8, { align: "center" });
+
+      doc.setTextColor(cafeOscuro[0], cafeOscuro[1], cafeOscuro[2]);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(valor, x + cardW / 2, cardY + 18, { align: "center" });
+    }
+
+    tarjeta(margen, "VENTAS", String(corte.cantidadVentas));
+    tarjeta(margen + cardW + gap, "TOTAL VENDIDO", "Q" + Number(corte.totalVendido || 0).toFixed(2));
+    tarjeta(margen + (cardW + gap) * 2, "GANANCIA", "Q" + Number(corte.ganancia || 0).toFixed(2));
+    tarjeta(margen + (cardW + gap) * 3, "FECHA", String(corte.fechaCompleta).split(",")[0]);
+
+    y += 42;
+
+    // Detalle de ventas
+    doc.setTextColor(cafeOscuro[0], cafeOscuro[1], cafeOscuro[2]);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Detalle de ventas incluidas", margen, y);
+
+    y += 8;
+
+    // Encabezado tabla
+    doc.setFillColor(cafe[0], cafe[1], cafe[2]);
+    doc.rect(margen, y, 180, 9, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("Fecha", margen + 2, y + 6);
+    doc.text("Productos", margen + 47, y + 6);
+    doc.text("Total", margen + 130, y + 6);
+    doc.text("Ganancia", margen + 158, y + 6);
+
+    y += 9;
+
+    doc.setTextColor(30, 30, 30);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+
+    const ventasDelCorte = corte.ventas || [];
+
+    if (ventasDelCorte.length === 0) {
+      doc.text("No hay detalle disponible.", margen + 2, y + 6);
+      y += 8;
+    } else {
+      ventasDelCorte.forEach(function(venta, index) {
+        if (y > 265) {
+          doc.addPage();
+          y = 20;
+        }
+
+        if (index % 2 === 0) {
+          doc.setFillColor(250, 246, 240);
+          doc.rect(margen, y, 180, 8, "F");
+        }
+
+        let productosTexto = "";
+
+        if (venta.productos && Array.isArray(venta.productos)) {
+          productosTexto = venta.productos.map(function(item) {
+            return item.nombre + " x" + item.cantidad;
+          }).join(", ");
+        } else {
+          productosTexto = "Venta";
+        }
+
+        if (productosTexto.length > 45) {
+          productosTexto = productosTexto.substring(0, 45) + "...";
+        }
+
+        doc.text(String(venta.fecha || "").substring(0, 20), margen + 2, y + 6);
+        doc.text(productosTexto, margen + 47, y + 6);
+        doc.text("Q" + Number(venta.total || 0).toFixed(2), margen + 130, y + 6);
+        doc.text("Q" + Number(venta.ganancia || 0).toFixed(2), margen + 158, y + 6);
+
+        y += 8;
+      });
+    }
+
+    y += 10;
+
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+
+    // Resumen final
+    doc.setFillColor(crema[0], crema[1], crema[2]);
+    doc.roundedRect(margen, y, 180, 28, 3, 3, "F");
+
+    y += 10;
+    doc.setTextColor(cafeOscuro[0], cafeOscuro[1], cafeOscuro[2]);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Resumen final", margen + 5, y);
+
+    y += 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Total vendido: Q" + Number(corte.totalVendido || 0).toFixed(2), margen + 5, y);
+
+    y += 7;
+    doc.text("Ganancia estimada: Q" + Number(corte.ganancia || 0).toFixed(2), margen + 5, y);
+
+    // Pie de página
+    doc.setFillColor(cafe[0], cafe[1], cafe[2]);
+    doc.rect(0, 285, 210, 12, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text("Documento generado automáticamente por el sistema de Librería Osita.", 105, 292, { align: "center" });
+
+    const fechaArchivo = corte.fechaCompleta
+      .replaceAll("/", "-")
+      .replaceAll(":", "-")
+      .replaceAll(",", "")
+      .replaceAll(" ", "_");
+
+    doc.save("corte_libreria_osita_" + fechaArchivo + ".pdf");
+  }
+
+  // Cargar logo
+  const logo = new Image();
+  logo.src = "logo_osita.png";
+
+  logo.onload = function() {
+    dibujarPDF(logo);
+  };
+
+  logo.onerror = function() {
+    dibujarPDF(null);
+  };
+}
+
+function crearRespaldoAutomaticoCorte(corte) {
+  const respaldo = {
+    fecha: new Date().toLocaleString(),
+    motivo: "Respaldo automático generado al finalizar corte",
+    corte: corte,
+    productos: productos,
+    ventas: ventas,
+    movimientos: movimientos,
+    cortes: cortes
+  };
+
+  const archivo = new Blob([JSON.stringify(respaldo, null, 2)], {
+    type: "application/json"
+  });
+
+  const url = URL.createObjectURL(archivo);
+
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = "respaldo_automatico_libreria_osita.json";
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+
+  URL.revokeObjectURL(url);
+}
+
+function borrarCortes() {
+  pedirClaveAdmin(function() {
+    mostrarConfirmacion(
+      "Borrar historial de cortes",
+      "¿Seguro que quieres borrar todo el historial de cortes?",
+      function() {
+        cortes = [];
+        guardarDatos();
+        mostrarCortes();
+
+        mostrarMensaje("Historial de cortes eliminado correctamente.", "Listo", "exito");
+      }
+    );
+  });
+}
