@@ -1178,43 +1178,45 @@ function probarCorteDia() {
     return;
   }
 
-  const totalVendido = ventasDelDia.reduce(function(total, venta) {
-    return total + (Number(venta.total) || 0);
-  }, 0);
+  mostrarConfirmacion(
+    "Finalizar corte del día",
+    "¿Seguro que deseas finalizar el corte? Se generará el PDF, el respaldo y se reiniciará el corte del día.",
+    function() {
+      const totalVendido = ventasDelDia.reduce(function(total, venta) {
+        return total + (Number(venta.total) || 0);
+      }, 0);
 
-  const gananciaTotal = ventasDelDia.reduce(function(total, venta) {
-    return total + (Number(venta.ganancia) || 0);
-  }, 0);
+      const gananciaTotal = ventasDelDia.reduce(function(total, venta) {
+        return total + (Number(venta.ganancia) || 0);
+      }, 0);
 
-  const corte = {
-  id: Date.now().toString(),
-  fechaCompleta: new Date().toLocaleString(),
-  cantidadVentas: ventasDelDia.length,
-  totalVendido: totalVendido,
-  ganancia: gananciaTotal,
-  ventas: ventasDelDia
-  };
+      const corte = {
+        id: Date.now().toString(),
+        fechaCompleta: new Date().toLocaleString(),
+        cantidadVentas: ventasDelDia.length,
+        totalVendido: totalVendido,
+        ganancia: gananciaTotal,
+        ventas: ventasDelDia
+      };
 
-  // 1. Primero guarda el corte
-  cortes.push(corte);
-  guardarDatos();
-  mostrarCortes();
+      cortes.push(corte);
+      guardarDatos();
+      mostrarCortes();
 
-  // 2. Luego genera PDF y respaldo
-  generarPDFCorte(corte);
-  crearRespaldoAutomaticoCorte(corte);
+      generarPDFCorte(corte);
+      crearRespaldoAutomaticoCorte(corte);
 
-  // 3. Hasta el final reinicia el corte para la próxima venta
-  fechaUltimoCorte = new Date().toISOString();
-  localStorage.setItem("fechaUltimoCorte", fechaUltimoCorte);
+      fechaUltimoCorte = new Date().toISOString();
+      localStorage.setItem("fechaUltimoCorte", fechaUltimoCorte);
 
-  // 4. Actualiza pantalla
-  actualizarResumen();
+      actualizarResumen();
 
-  mostrarMensaje(
-    "Corte guardado. Ventas: " + ventasDelDia.length + " | Total: Q" + totalVendido.toFixed(2),
-    "Corte guardado",
-    "exito"
+      mostrarMensaje(
+        "Corte guardado. Ventas: " + ventasDelDia.length + " | Total: Q" + totalVendido.toFixed(2),
+        "Corte guardado",
+        "exito"
+      );
+    }
   );
 }
 
@@ -1311,18 +1313,15 @@ function generarPDFCorte(corte) {
     const margen = 15;
     let y = 15;
 
-    // Encabezado
     doc.setFillColor(cafe[0], cafe[1], cafe[2]);
     doc.rect(0, 0, 210, 35, "F");
 
-    // Logo
     if (logoDataUrl) {
       try {
         doc.addImage(logoDataUrl, "PNG", 182, 6, 18, 18);
       } catch (e) {}
     }
 
-    // Título
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
@@ -1342,7 +1341,6 @@ function generarPDFCorte(corte) {
 
     y = 48;
 
-    // Título sección
     doc.setTextColor(cafeOscuro[0], cafeOscuro[1], cafeOscuro[2]);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
@@ -1350,7 +1348,6 @@ function generarPDFCorte(corte) {
 
     y += 8;
 
-    // Tarjetas resumen
     const cardY = y;
     const cardH = 25;
     const cardW = 42;
@@ -1378,7 +1375,6 @@ function generarPDFCorte(corte) {
 
     y += 42;
 
-    // Detalle de ventas
     doc.setTextColor(cafeOscuro[0], cafeOscuro[1], cafeOscuro[2]);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
@@ -1386,7 +1382,6 @@ function generarPDFCorte(corte) {
 
     y += 8;
 
-    // Encabezado tabla
     doc.setFillColor(cafe[0], cafe[1], cafe[2]);
     doc.rect(margen, y, 180, 9, "F");
 
@@ -1451,7 +1446,6 @@ function generarPDFCorte(corte) {
       y = 20;
     }
 
-    // Resumen final
     doc.setFillColor(crema[0], crema[1], crema[2]);
     doc.roundedRect(margen, y, 180, 28, 3, 3, "F");
 
@@ -1469,7 +1463,6 @@ function generarPDFCorte(corte) {
     y += 7;
     doc.text("Ganancia estimada: Q" + Number(corte.ganancia || 0).toFixed(2), margen + 5, y);
 
-    // Pie de página
     doc.setFillColor(cafe[0], cafe[1], cafe[2]);
     doc.rect(0, 285, 210, 12, "F");
 
@@ -1485,43 +1478,42 @@ function generarPDFCorte(corte) {
 
     const nombrePDF = "corte_libreria_osita_" + fechaArchivo + ".pdf";
 
-const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
-if (esIOS) {
-  const pdfData = doc.output("datauristring");
+    if (esIOS) {
+      const pdfData = doc.output("datauristring");
 
-  const ventana = window.open();
-  if (ventana) {
-    ventana.document.write(`
-      <html>
-        <head>
-          <title>${nombrePDF}</title>
-          <style>
-            body { margin: 0; }
-            iframe { width: 100%; height: 100vh; border: none; }
-          </style>
-        </head>
-        <body>
-          <iframe src="${pdfData}"></iframe>
-        </body>
-      </html>
-    `);
-  } else {
-    window.location.href = pdfData;
+      const ventana = window.open();
+      if (ventana) {
+        ventana.document.write(`
+          <html>
+            <head>
+              <title>${nombrePDF}</title>
+              <style>
+                body { margin: 0; }
+                iframe { width: 100%; height: 100vh; border: none; }
+              </style>
+            </head>
+            <body>
+              <iframe src="${pdfData}"></iframe>
+            </body>
+          </html>
+        `);
+      } else {
+        window.location.href = pdfData;
+      }
+    } else {
+      doc.save(nombrePDF);
+    }
   }
-} else {
-  doc.save(nombrePDF);
-}
 
-  // Cargar logo
   const logo = new Image();
   logo.src = "logo_osita.png";
 
   logo.onload = function() {
     dibujarPDF(logo);
   };
-}
 
   logo.onerror = function() {
     dibujarPDF(null);
