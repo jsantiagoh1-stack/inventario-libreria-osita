@@ -1,7 +1,6 @@
 let productos = cargarLocalStorage("productos");
 let ventas = cargarLocalStorage("ventas");
 let movimientos = cargarLocalStorage("movimientos");
-let cortes = cargarLocalStorage("cortes");
 let ventaActual = [];
 let productoSeleccionadoVenta = null;
 let productoStockSeleccionado = null;
@@ -46,7 +45,6 @@ function guardarDatos() {
   localStorage.setItem("productos", JSON.stringify(productos));
   localStorage.setItem("ventas", JSON.stringify(ventas));
   localStorage.setItem("movimientos", JSON.stringify(movimientos));
-  localStorage.setItem("cortes", JSON.stringify(cortes));
 }
 
 function obtenerValor(id) {
@@ -994,12 +992,11 @@ function descargarCSV(contenido, nombreArchivo) {
 
 function crearRespaldo() {
   const respaldo = {
-  fecha: new Date().toLocaleString(),
-  productos: productos,
-  ventas: ventas,
-  movimientos: movimientos,
-  cortes: cortes
-};
+    fecha: new Date().toLocaleString(),
+    productos: productos,
+    ventas: ventas,
+    movimientos: movimientos
+  };
 
   const archivo = new Blob([JSON.stringify(respaldo, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(archivo);
@@ -1051,7 +1048,6 @@ function leerArchivoRespaldo(archivo) {
       productos = normalizarProductos(datos.productos);
       ventas = datos.ventas || [];
       movimientos = datos.movimientos || [];
-      cortes = datos.cortes || [];
       ventaActual = [];
 
       guardarDatos();
@@ -1059,7 +1055,6 @@ function leerArchivoRespaldo(archivo) {
       mostrarVentas();
       mostrarVentaActual();
       mostrarMovimientos();
-      mostrarCortes();
       actualizarResumen();
 
       mostrarMensaje("Respaldo restaurado correctamente.", "Listo", "exito");
@@ -1069,324 +1064,6 @@ function leerArchivoRespaldo(archivo) {
   };
 
   lector.readAsText(archivo);
-}
-
-function obtenerVentasDeHoy() {
-  const fechaHoy = new Date().toLocaleDateString();
-
-  return ventas.filter(function(v) {
-    return String(v.fecha || "").includes(fechaHoy);
-  });
-}
-
-function obtenerDetalleProductosVendidos(ventasDelDia) {
-  const detalle = [];
-
-  ventasDelDia.forEach(function(venta) {
-    if (venta.productos && Array.isArray(venta.productos)) {
-      venta.productos.forEach(function(item) {
-        detalle.push({
-          codigo: item.codigo,
-          nombre: item.nombre,
-          presentacion: item.presentacion,
-          cantidad: Number(item.cantidad) || 0,
-          subtotal: Number(item.subtotal) || 0,
-          ganancia: Number(item.ganancia) || 0
-        });
-      });
-    }
-  });
-
-  return detalle;
-}
-
-function obtenerProductoMasVendidoDelDia(ventasDelDia) {
-  const conteo = {};
-
-  ventasDelDia.forEach(function(venta) {
-    if (venta.productos && Array.isArray(venta.productos)) {
-      venta.productos.forEach(function(item) {
-        const clave = item.codigo + " - " + item.nombre;
-
-        if (!conteo[clave]) {
-          conteo[clave] = 0;
-        }
-
-        conteo[clave] += Number(item.cantidad) || 0;
-      });
-    }
-  });
-
-  let mejorProducto = "Ninguno";
-  let mayor = 0;
-
-  Object.keys(conteo).forEach(function(nombre) {
-    if (conteo[nombre] > mayor) {
-      mayor = conteo[nombre];
-      mejorProducto = nombre + " (" + mayor + ")";
-    }
-  });
-
-  return mejorProducto;
-}
-
-function finalizarCorteDia() {
-  pedirClaveAdmin(function() {
-    const ventasDelDia = obtenerVentasDeHoy();
-
-    if (ventasDelDia.length === 0) {
-      mostrarMensaje("No hay ventas registradas hoy para hacer corte.", "Aviso", "aviso");
-      return;
-    }
-
-    mostrarConfirmacion(
-      "Finalizar corte del día",
-      "Se generará el PDF del corte y un respaldo automático. ¿Deseas continuar?",
-      function() {
-        crearCorteDia(ventasDelDia);
-      }
-    );
-  });
-}
-
-function crearCorteDia(ventasDelDia) {
-  const fecha = new Date();
-  const detalle = obtenerDetalleProductosVendidos(ventasDelDia);
-
-  const totalVendido = ventasDelDia.reduce(function(total, venta) {
-    return total + (Number(venta.total) || 0);
-  }, 0);
-
-  const gananciaTotal = ventasDelDia.reduce(function(total, venta) {
-    return total + (Number(venta.ganancia) || 0);
-  }, 0);
-
-  const corte = {
-    id: Date.now().toString(),
-    fecha: fecha.toLocaleDateString(),
-    hora: fecha.toLocaleTimeString(),
-    fechaCompleta: fecha.toLocaleString(),
-    cantidadVentas: ventasDelDia.length,
-    totalVendido: totalVendido,
-    ganancia: gananciaTotal,
-    productoMasVendido: obtenerProductoMasVendidoDelDia(ventasDelDia),
-    detalle: detalle
-  };
-
-  cortes.push(corte);
-  guardarDatos();
-
-  generarPDFCorte(corte);
-  crearRespaldoAutomaticoCorte(corte);
-
-  mostrarCortes();
-  actualizarResumen();
-
-  mostrarMensaje(
-    "Corte finalizado correctamente. Se descargó el PDF y el respaldo.",
-    "Corte finalizado",
-    "exito"
-  );
-}
-
-function generarPDFCorte(corte) {
-  if (!window.jspdf || !window.jspdf.jsPDF) {
-    mostrarMensaje("No se pudo cargar la librería para generar PDF.", "Error", "error");
-    return;
-  }
-
-  const jsPDF = window.jspdf.jsPDF;
-  const doc = new jsPDF();
-
-  let y = 15;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.text("Librería Osita", 105, y, { align: "center" });
-
-  y += 8;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.text("Pequeños detalles, grandes ideas", 105, y, { align: "center" });
-
-  y += 14;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
-  doc.text("CORTE DE CAJA DEL DÍA", 105, y, { align: "center" });
-
-  y += 12;
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-
-  doc.text("Fecha: " + corte.fecha, 15, y);
-  doc.text("Hora: " + corte.hora, 120, y);
-
-  y += 8;
-  doc.text("Cantidad de ventas: " + corte.cantidadVentas, 15, y);
-  doc.text("Producto más vendido: " + corte.productoMasVendido, 80, y);
-
-  y += 8;
-  doc.setFont("helvetica", "bold");
-  doc.text("Total vendido: Q" + Number(corte.totalVendido).toFixed(2), 15, y);
-  doc.text("Ganancia estimada: Q" + Number(corte.ganancia).toFixed(2), 100, y);
-
-  y += 12;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("Detalle de productos vendidos", 15, y);
-
-  y += 8;
-  doc.setFillColor(122, 74, 36);
-  doc.setTextColor(255, 255, 255);
-  doc.rect(15, y - 5, 180, 8, "F");
-
-  doc.setFontSize(9);
-  doc.text("Código", 17, y);
-  doc.text("Producto", 40, y);
-  doc.text("Presentación", 95, y);
-  doc.text("Cant.", 130, y);
-  doc.text("Total", 148, y);
-  doc.text("Ganancia", 170, y);
-
-  y += 6;
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "normal");
-
-  if (corte.detalle.length === 0) {
-    doc.text("No hay detalle de productos.", 15, y);
-  } else {
-    corte.detalle.forEach(function(item) {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-
-      const nombreCorto = String(item.nombre || "").substring(0, 28);
-      const presCorta = String(item.presentacion || "").substring(0, 18);
-
-      doc.text(String(item.codigo || ""), 17, y);
-      doc.text(nombreCorto, 40, y);
-      doc.text(presCorta, 95, y);
-      doc.text(String(item.cantidad), 132, y);
-      doc.text("Q" + Number(item.subtotal).toFixed(2), 148, y);
-      doc.text("Q" + Number(item.ganancia).toFixed(2), 170, y);
-
-      y += 7;
-    });
-  }
-
-  y += 10;
-
-  if (y > 255) {
-    doc.addPage();
-    y = 20;
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text("RESUMEN FINAL", 15, y);
-
-  y += 9;
-  doc.setFontSize(12);
-  doc.text("Total vendido: Q" + Number(corte.totalVendido).toFixed(2), 15, y);
-
-  y += 8;
-  doc.text("Ganancia estimada: Q" + Number(corte.ganancia).toFixed(2), 15, y);
-
-  y += 15;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Corte generado automáticamente por el sistema de Librería Osita.", 15, y);
-
-  const nombreArchivo = "corte_libreria_osita_" + corte.fecha.replaceAll("/", "-") + ".pdf";
-  doc.save(nombreArchivo);
-}
-
-function crearRespaldoAutomaticoCorte(corte) {
-  const respaldo = {
-    fecha: new Date().toLocaleString(),
-    motivo: "Respaldo automático generado al finalizar corte",
-    corte: corte,
-    productos: productos,
-    ventas: ventas,
-    movimientos: movimientos,
-    cortes: cortes
-  };
-
-  const archivo = new Blob([JSON.stringify(respaldo, null, 2)], {
-    type: "application/json"
-  });
-
-  const url = URL.createObjectURL(archivo);
-
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = "respaldo_automatico_libreria_osita.json";
-  document.body.appendChild(enlace);
-  enlace.click();
-  document.body.removeChild(enlace);
-
-  URL.revokeObjectURL(url);
-}
-
-function mostrarCortes() {
-  const lista = document.getElementById("listaCortes");
-
-  if (!lista) return;
-
-  lista.innerHTML = "";
-
-  if (!cortes || cortes.length === 0) {
-    lista.innerHTML = `
-      <tr>
-        <td colspan="5">No hay cortes registrados</td>
-      </tr>
-    `;
-    return;
-  }
-
-  cortes.slice().reverse().forEach(function(corte) {
-    lista.innerHTML += `
-      <tr>
-        <td>${corte.fechaCompleta || corte.fecha}</td>
-        <td>${corte.cantidadVentas}</td>
-        <td>Q${Number(corte.totalVendido || 0).toFixed(2)}</td>
-        <td>Q${Number(corte.ganancia || 0).toFixed(2)}</td>
-        <td>${corte.productoMasVendido || "Ninguno"}</td>
-      </tr>
-    `;
-  });
-}
-
-function descargarCortesCSV() {
-  if (!cortes || cortes.length === 0) {
-    mostrarMensaje("No hay cortes para descargar.", "Aviso", "aviso");
-    return;
-  }
-
-  let csv = "Fecha,Ventas,Total Vendido,Ganancia,Producto Mas Vendido\n";
-
-  cortes.forEach(function(corte) {
-    csv += `"${corte.fechaCompleta || corte.fecha}",${corte.cantidadVentas},${corte.totalVendido},${corte.ganancia},"${corte.productoMasVendido}"\n`;
-  });
-
-  descargarCSV(csv, "cortes_libreria_osita.csv");
-}
-
-function borrarCortes() {
-  pedirClaveAdmin(function() {
-    mostrarConfirmacion(
-      "Borrar cortes",
-      "¿Seguro que quieres borrar todo el historial de cortes?",
-      function() {
-        cortes = [];
-        guardarDatos();
-        mostrarCortes();
-
-        mostrarMensaje("Historial de cortes eliminado.", "Listo", "exito");
-      }
-    );
-  });
 }
 
 function actualizarResumen() {
@@ -1480,5 +1157,4 @@ mostrarProductos();
 mostrarVentas();
 mostrarVentaActual();
 mostrarMovimientos();
-mostrarCortes();
 actualizarResumen();
