@@ -1180,7 +1180,7 @@ function probarCorteDia() {
 
   mostrarConfirmacion(
     "Finalizar corte del día",
-    "¿Seguro que deseas finalizar el corte? Se generará el PDF, el respaldo y se reiniciará el corte del día.",
+    "¿Seguro que deseas finalizar el corte? Se guardará el historial y se intentará generar el PDF.",
     function() {
       const totalVendido = ventasDelDia.reduce(function(total, venta) {
         return total + (Number(venta.total) || 0);
@@ -1199,20 +1199,35 @@ function probarCorteDia() {
         ventas: ventasDelDia
       };
 
+      // 1. Guardar corte
       cortes.push(corte);
-      guardarDatos();
-      mostrarCortes();
 
-      generarPDFCorte(corte);
-      crearRespaldoAutomaticoCorte(corte, false);
-
+      // 2. Cerrar el periodo del corte ANTES del PDF
       fechaUltimoCorte = new Date().toISOString();
       localStorage.setItem("fechaUltimoCorte", fechaUltimoCorte);
 
+      // 3. Guardar datos y limpiar pantalla
+      guardarDatos();
+      mostrarCortes();
       actualizarResumen();
 
+      // 4. Guardar respaldo interno sin abrir JSON en iPad
+      crearRespaldoAutomaticoCorte(corte, false);
+
+      // 5. Intentar generar PDF sin bloquear el cierre del corte
+      try {
+        generarPDFCorte(corte);
+      } catch (error) {
+        mostrarMensaje(
+          "El corte fue guardado, pero el iPad no pudo abrir el PDF. Puedes revisar el historial de cortes.",
+          "PDF no generado",
+          "aviso"
+        );
+        return;
+      }
+
       mostrarMensaje(
-        "Corte guardado. Ventas: " + ventasDelDia.length + " | Total: Q" + totalVendido.toFixed(2),
+        "Corte guardado correctamente. Ventas: " + ventasDelDia.length + " | Total: Q" + totalVendido.toFixed(2),
         "Corte guardado",
         "exito"
       );
@@ -1508,16 +1523,7 @@ function generarPDFCorte(corte) {
     }
   }
 
-  const logo = new Image();
-  logo.src = "logo_osita.png";
-
-  logo.onload = function() {
-    dibujarPDF(logo);
-  };
-
-  logo.onerror = function() {
-    dibujarPDF(null);
-  };
+dibujarPDF(null);
 }
 
 function crearRespaldoAutomaticoCorte(corte, descargar) {
