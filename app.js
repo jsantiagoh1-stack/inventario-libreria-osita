@@ -1483,8 +1483,36 @@ function generarPDFCorte(corte) {
       .replaceAll(",", "")
       .replaceAll(" ", "_");
 
-    doc.save("corte_libreria_osita_" + fechaArchivo + ".pdf");
+    const nombrePDF = "corte_libreria_osita_" + fechaArchivo + ".pdf";
+
+const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+if (esIOS) {
+  const pdfData = doc.output("datauristring");
+
+  const ventana = window.open();
+  if (ventana) {
+    ventana.document.write(`
+      <html>
+        <head>
+          <title>${nombrePDF}</title>
+          <style>
+            body { margin: 0; }
+            iframe { width: 100%; height: 100vh; border: none; }
+          </style>
+        </head>
+        <body>
+          <iframe src="${pdfData}"></iframe>
+        </body>
+      </html>
+    `);
+  } else {
+    window.location.href = pdfData;
   }
+} else {
+  doc.save(nombrePDF);
+}
 
   // Cargar logo
   const logo = new Image();
@@ -1493,6 +1521,7 @@ function generarPDFCorte(corte) {
   logo.onload = function() {
     dibujarPDF(logo);
   };
+}
 
   logo.onerror = function() {
     dibujarPDF(null);
@@ -1510,20 +1539,15 @@ function crearRespaldoAutomaticoCorte(corte) {
     cortes: cortes
   };
 
-  const archivo = new Blob([JSON.stringify(respaldo, null, 2)], {
-    type: "application/json"
-  });
+  const contenido = JSON.stringify(respaldo, null, 2);
+const enlace = document.createElement("a");
 
-  const url = URL.createObjectURL(archivo);
+enlace.href = "data:application/json;charset=utf-8," + encodeURIComponent(contenido);
+enlace.download = "respaldo_automatico_libreria_osita.json";
 
-  const enlace = document.createElement("a");
-  enlace.href = url;
-  enlace.download = "respaldo_automatico_libreria_osita.json";
-  document.body.appendChild(enlace);
-  enlace.click();
-  document.body.removeChild(enlace);
-
-  URL.revokeObjectURL(url);
+document.body.appendChild(enlace);
+enlace.click();
+document.body.removeChild(enlace);
 }
 
 function borrarCortes() {
